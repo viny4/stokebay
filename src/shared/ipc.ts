@@ -99,6 +99,7 @@ export const CHANNELS = {
   logRendererError: 'log:rendererError',
   searchQuery: 'search:query',
   areasActivity: 'areas:activity',
+  appOpenPrivacySettings: 'app:openPrivacySettings',
 } as const;
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };
@@ -119,6 +120,8 @@ export interface HudApi {
   search(query: string): Promise<SearchHit[]>;
   /** The last week of activity across one area's projects. */
   areaActivity(worldId: Id): Promise<AreaActivity>;
+  /** Opens macOS System Settings at Privacy & Security → Files and Folders. */
+  openPrivacySettings(): Promise<void>;
   addNote(input: AddNoteInput): Promise<ProjectDetail>;
   addLink(input: AddLinkInput): Promise<ProjectDetail>;
   openLink(entryId: Id): Promise<void>;

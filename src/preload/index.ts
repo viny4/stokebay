@@ -23,6 +23,7 @@ const api: HudApi = {
   getProjectDetail: (id) => invoke(CHANNELS.projectsDetail, { id }),
   search: (query) => invoke(CHANNELS.searchQuery, { query }),
   areaActivity: (worldId) => invoke(CHANNELS.areasActivity, { worldId }),
+  openPrivacySettings: () => invoke(CHANNELS.appOpenPrivacySettings),
   addNote: (input) => invoke(CHANNELS.entriesAddNote, input),
   addLink: (input) => invoke(CHANNELS.entriesAddLink, input),
   openLink: (entryId) => invoke(CHANNELS.entriesOpenLink, { id: entryId }),

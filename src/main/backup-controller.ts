@@ -4,6 +4,8 @@ import { dayStamp } from './services/backup';
 import {
   backupRoot,
   findGoogleDrive,
+  isFolderBlocked,
+  isPermissionError,
   listSnapshots,
   restoreExternalBackup,
   runExternalBackup,
@@ -22,6 +24,10 @@ export interface BackupControllerDeps {
   clock?: () => number;
 }
 
+export const BLOCKED_MESSAGE =
+  'macOS is blocking Stokebay from the backup folder. Open Privacy settings and allow Stokebay ' +
+  'under Files and Folders (for Google Drive, the "Google Drive" switch), then try again.';
+
 export class BackupController {
   constructor(private readonly deps: BackupControllerDeps) {}
 
@@ -36,6 +42,7 @@ export class BackupController {
       lastBackupAt: lastExternalBackupAt,
       snapshots: backupFolder ? await listSnapshots(backupFolder) : [],
       googleDrive: await findGoogleDrive(),
+      folderBlocked: backupFolder ? await isFolderBlocked(backupFolder) : false,
     };
   }
 
@@ -75,6 +82,7 @@ export class BackupController {
     try {
       await runExternalBackup(this.deps.dataDir, folder, this.now, undefined, this.deps.snapshot);
     } catch (err) {
+      if (isPermissionError(err)) throw new UserError(BLOCKED_MESSAGE);
       throw new UserError(
         `Couldn't write to the backup folder. Is it still there? (${err instanceof Error ? err.message : String(err)})`,
       );

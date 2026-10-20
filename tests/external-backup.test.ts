@@ -3,6 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { dayStamp } from '../src/main/services/backup';
 import {
+  isFolderBlocked,
   BACKUP_FOLDER_NAME,
   findGoogleDrive,
   listSnapshots,
@@ -107,5 +108,21 @@ describe('external backups', () => {
     );
     await fs.mkdir(myDrive, { recursive: true });
     expect(await findGoogleDrive(home)).toBe(myDrive);
+  });
+});
+
+describe('isFolderBlocked', () => {
+  it('reports a folder the app may not read, but not one that is simply missing', async () => {
+    const chosen = await tempDir();
+    const root = path.join(chosen, 'Stokebay Backups');
+    expect(await isFolderBlocked(chosen)).toBe(false); // not created yet
+    await fs.mkdir(root);
+    expect(await isFolderBlocked(chosen)).toBe(false);
+    await fs.chmod(root, 0o000);
+    try {
+      expect(await isFolderBlocked(chosen)).toBe(true);
+    } finally {
+      await fs.chmod(root, 0o755);
+    }
   });
 });

@@ -128,6 +128,12 @@ export function registerIpcHandlers({
   handle(CHANNELS.projectsDetail, idInput, ({ id }) => service.detail(id));
   handle(CHANNELS.searchQuery, searchInput, ({ query }) => service.search(query));
   handle(CHANNELS.areasActivity, areaInput, ({ worldId }) => service.areaActivity(worldId));
+  handle(CHANNELS.appOpenPrivacySettings, emptyInput, async () => {
+    if (process.platform !== 'darwin') return;
+    await shell.openExternal(
+      'x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders',
+    );
+  });
 
   handle(CHANNELS.entriesAddNote, addNoteInput, ({ projectId, title, body }) =>
     service.addNote(projectId, title, body),

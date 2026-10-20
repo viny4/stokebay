@@ -118,6 +118,25 @@ export async function restoreExternalBackup(
   await fs.rename(tmp, current);
 }
 
+/** macOS answers EPERM/EACCES when its privacy settings deny an app access to a folder. */
+export function isPermissionError(err: unknown): boolean {
+  const code = (err as NodeJS.ErrnoException | null)?.code;
+  return code === 'EPERM' || code === 'EACCES';
+}
+
+/**
+ * True when the backup folder exists but this app may not read it (macOS privacy settings,
+ * e.g. "Files and Folders → Google Drive" turned off for Stokebay).
+ */
+export async function isFolderBlocked(chosen: string): Promise<boolean> {
+  try {
+    await fs.readdir(backupRoot(chosen));
+    return false;
+  } catch (err) {
+    return isPermissionError(err);
+  }
+}
+
 /** "My Drive" of Google Drive for desktop, if installed (it lives under ~/Library/CloudStorage). */
 export async function findGoogleDrive(home: string = os.homedir()): Promise<string | null> {
   const cloud = path.join(home, 'Library', 'CloudStorage');

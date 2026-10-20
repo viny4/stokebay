@@ -86,6 +86,26 @@ export function SettingsDialog() {
                     : 'No backup yet.'}
                 </p>
               </div>
+              {status.folderBlocked ? (
+                <div
+                  role="alert"
+                  className="flex flex-col gap-2 rounded-md border border-danger/30 bg-danger/10 p-3"
+                >
+                  <p className="text-sm text-ink">
+                    macOS is blocking Stokebay from this folder, so backups can&apos;t be saved.
+                  </p>
+                  <p className="text-xs text-muted">
+                    In Privacy settings, open Files and Folders, find Stokebay and turn on the
+                    switch for this folder (for Google Drive, &ldquo;Google Drive&rdquo;). If macOS
+                    asks instead, choose Allow.
+                  </p>
+                  <div>
+                    <Button onClick={() => void window.api.openPrivacySettings()}>
+                      Open Privacy settings
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="primary"
@@ -179,9 +199,14 @@ export function SettingsDialog() {
           ) : null}
 
           {error ? (
-            <p role="alert" className="text-sm text-danger">
-              {error}
-            </p>
+            <div role="alert" className="flex flex-col items-start gap-2">
+              <p className="text-sm text-danger">{error}</p>
+              {error.startsWith('macOS is blocking') ? (
+                <Button onClick={() => void window.api.openPrivacySettings()}>
+                  Open Privacy settings
+                </Button>
+              ) : null}
+            </div>
           ) : null}
         </section>
       </div>

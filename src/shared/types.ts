@@ -244,6 +244,8 @@ export interface BackupStatus {
   snapshots: string[];
   /** "My Drive" of Google Drive for desktop, when installed. */
   googleDrive: string | null;
+  /** True when macOS's privacy settings stop Stokebay from reading the backup folder. */
+  folderBlocked: boolean;
 }
 
 export interface BootstrapData {
