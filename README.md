@@ -61,12 +61,17 @@ Light and dark mode follow your system.
 
 ## Download
 
-Get the latest `.dmg` from the [Releases](https://github.com/viny4/stokebay/releases) page
-(macOS on Apple silicon). Windows and Linux builds are planned.
+Get the latest version from the [Releases](https://github.com/viny4/stokebay/releases) page:
 
-The app isn't signed with an Apple developer certificate yet, so the first time you open it
-macOS will say it can't check it. Right-click **Stokebay** in Applications, choose **Open**, then
-**Open** again. You only need to do this once.
+- **macOS:** the `.dmg` (`arm64` for Apple silicon, `x64` for Intel Macs)
+- **Windows:** `Stokebay-… Setup.exe`
+- **Linux:** the `.deb` (Ubuntu, Debian) or `.rpm` (Fedora, openSUSE)
+
+The app isn't signed with a paid Apple or Microsoft certificate yet, so your computer asks once:
+
+- **macOS:** open Stokebay, then go to **System Settings → Privacy & Security** and click **Open
+  Anyway**.
+- **Windows:** if SmartScreen says "Windows protected your PC", click **More info → Run anyway**.
 
 ## Your data
 
@@ -76,17 +81,19 @@ Nothing is sent anywhere.
 
 ## Build from source
 
-You'll need Node.js 22 or newer and Git.
+You'll need Node.js 22.13 or newer and Git. On Linux, also the usual build tools (`build-essential`,
+`python3`), because the built-in terminal compiles a small native part during `npm install`.
 
 ```bash
 git clone https://github.com/viny4/stokebay.git
 cd stokebay
 npm install
 npm start          # run in development
-npm run make       # build the .dmg and .zip into out/make
+npm run make       # build the installers for your platform into out/make
 ```
 
-Checks: `npm run typecheck`, `npm run lint`, `npm test`.
+Checks: `npm run typecheck`, `npm run lint`, `npm test`. Releases are built by GitHub Actions;
+see [docs/releasing.md](docs/releasing.md).
 
 Built with Electron, React, TypeScript, Tailwind CSS and React Flow.
 

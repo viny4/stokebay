@@ -1,0 +1,101 @@
+# Builds the installers for every platform. Pushing a version tag (v0.2.0) builds them and puts
+# them on a draft GitHub release to read over and publish by hand. Running it by hand from the
+# Actions tab builds the same files as downloadable artifacts, without a release.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # One Apple silicon machine builds both Mac versions: node-pty's ready-built binaries
+          # cover Intel too, so nothing needs compiling.
+          - name: macOS
+            os: macos-latest
+            make: npm run make -- --arch=arm64 && npm run make -- --arch=x64
+          - name: Windows
+            os: windows-latest
+            make: npm run make
+          - name: Linux
+            os: ubuntu-latest
+            make: npm run make
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Check the tag matches package.json
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match package.json version $version"
+            exit 1
+          fi
+
+      - name: Install the Linux packaging tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm fakeroot
+
+      # On Linux this also compiles node-pty (the built-in terminal), which has no ready-built binary.
+      - run: npm ci
+
+      - name: Test
+        if: runner.os != 'Windows'
+        run: npm test
+
+      - name: Build installers
+        run: ${{ matrix.make }}
+
+      - name: Collect installers
+        run: |
+          mkdir -p dist
+          find out/make -type f \( -name '*.dmg' -o -name '*.zip' -o -name '*Setup.exe' \
+            -o -name '*.deb' -o -name '*.rpm' \) -exec cp {} dist/ \;
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stokebay-${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Draft release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la dist
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --draft \
+            --title "Stokebay ${GITHUB_REF_NAME#v}" \
+            --notes-file .github/release-notes.md \
+            --generate-notes

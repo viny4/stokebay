@@ -1,4 +1,4 @@
-// Renders the app icon from the SVG below and builds assets/icon.png + assets/icon.icns.
+// Renders the app icon from the SVG below and builds assets/icon.png, icon.ico and icon.icns.
 // Runs inside Electron (`npm run icon`) so the SVG is drawn by Chromium; no image tools or
 // design files needed. The .icns step uses macOS's built-in `sips` and `iconutil`.
 const { app, BrowserWindow } = require('electron');
@@ -49,6 +49,29 @@ app.whenReady().then(async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const png = path.join(OUT, 'icon.png');
   fs.writeFileSync(png, image.resize({ width: 1024, height: 1024 }).toPNG());
+
+  // Windows: an .ico holding PNGs at the sizes Explorer and the taskbar ask for. Every Windows
+  // version since Vista reads PNG entries, so no BMP conversion is needed.
+  const sizes = [16, 24, 32, 48, 64, 128, 256];
+  const images = sizes.map((s) => image.resize({ width: s, height: s, quality: 'best' }).toPNG());
+  const header = Buffer.alloc(6 + 16 * sizes.length);
+  header.writeUInt16LE(0, 0); // reserved
+  header.writeUInt16LE(1, 2); // type: icon
+  header.writeUInt16LE(sizes.length, 4);
+  let offset = header.length;
+  sizes.forEach((s, i) => {
+    const entry = 6 + 16 * i;
+    header.writeUInt8(s >= 256 ? 0 : s, entry); // 0 means 256
+    header.writeUInt8(s >= 256 ? 0 : s, entry + 1);
+    header.writeUInt8(0, entry + 2); // no palette
+    header.writeUInt8(0, entry + 3);
+    header.writeUInt16LE(1, entry + 4); // colour planes
+    header.writeUInt16LE(32, entry + 6); // bits per pixel
+    header.writeUInt32LE(images[i].length, entry + 8);
+    header.writeUInt32LE(offset, entry + 12);
+    offset += images[i].length;
+  });
+  fs.writeFileSync(path.join(OUT, 'icon.ico'), Buffer.concat([header, ...images]));
 
   if (process.platform === 'darwin') {
     const set = path.join(OUT, 'icon.iconset');

@@ -40,36 +40,64 @@ function signAdHocWithStableIdentity(app: string): void {
  * (the built-in terminal) can't be bundled: it loads a native binary and starts a helper program
  * from its own folder. Copy just what it needs at runtime for this platform, executable bit
  * included; asar `unpack` below keeps those files real files on disk.
+ *
+ * macOS and Windows use node-pty's ready-built binaries (N-API, so one binary fits every
+ * Electron), which also lets a Mac build the Intel version. Linux has none: `npm ci` compiles it
+ * into build/Release on the Linux machine doing the build.
  */
 function copyNodePty(buildPath: string, platform: string, arch: string): void {
   const from = path.resolve('node_modules', 'node-pty');
   const to = path.join(buildPath, 'node_modules', 'node-pty');
   const prebuild = path.join('prebuilds', `${platform}-${arch}`);
-  if (!fs.existsSync(path.join(from, prebuild))) {
-    throw new Error(`node-pty has no ready-built binary for ${platform}-${arch}`);
-  }
-  for (const part of ['package.json', 'LICENSE', 'lib', prebuild]) {
+  const compiled = path.join('build', 'Release');
+  const native = fs.existsSync(path.join(from, prebuild))
+    ? prebuild
+    : platform === process.platform &&
+        arch === process.arch &&
+        fs.existsSync(path.join(from, compiled))
+      ? compiled
+      : null;
+  if (!native) throw new Error(`node-pty has no binary for ${platform}-${arch}`);
+  for (const part of ['package.json', 'LICENSE', 'lib', native]) {
     fs.cpSync(path.join(from, part), path.join(to, part), { recursive: true });
   }
-  const helper = path.join(to, prebuild, 'spawn-helper');
+  const helper = path.join(to, native, 'spawn-helper');
   if (fs.existsSync(helper)) fs.chmodSync(helper, 0o755);
 }
+
+const REPO_URL = 'https://github.com/viny4/stokebay';
+const LINUX_PACKAGE = {
+  icon: 'assets/icon.png',
+  categories: ['Development', 'Utility'] as ('Development' | 'Utility')[],
+  homepage: REPO_URL,
+  description: 'A local-first command center for every project you have.',
+  productName: 'Stokebay',
+};
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: { unpack: '**/node_modules/node-pty/**' },
-    // No extension: the packager picks icon.icns on macOS (built by `npm run icon`).
+    // No extension: the packager picks icon.icns on macOS and icon.ico on Windows (both built by
+    // `npm run icon`); Linux packages use icon.png (below).
     icon: 'assets/icon',
     appBundleId: BUNDLE_ID,
     appCategoryType: 'public.app-category.productivity',
   },
-  rebuildConfig: {},
+  // The only native module (node-pty) is N-API: it never needs rebuilding for Electron, and
+  // rebuilding it for the other Mac architecture would fail. Linux compiles it in `npm ci`.
+  rebuildConfig: { onlyModules: [] },
   makers: [
     new MakerDMG({ format: 'ULFO', icon: 'assets/icon.icns' }, ['darwin']),
     new MakerZIP({}, ['darwin']),
-    new MakerSquirrel({}),
-    new MakerRpm({}),
-    new MakerDeb({}),
+    new MakerSquirrel({ setupIcon: 'assets/icon.ico', name: 'Stokebay' }),
+    new MakerRpm({ options: { ...LINUX_PACKAGE, license: 'AGPL-3.0-or-later' } }),
+    new MakerDeb({
+      options: {
+        ...LINUX_PACKAGE,
+        maintainer: 'viny <vinayagam.python@gmail.com>',
+        section: 'devel',
+      },
+    }),
   ],
   hooks: {
     packageAfterCopy: async (_config, buildPath, _electronVersion, platform, arch) => {
