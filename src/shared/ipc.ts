@@ -23,6 +23,7 @@ import type {
   UpdateProjectInput,
 } from './schemas';
 import type {
+  BackupStatus,
   Blueprint,
   BootstrapData,
   Id,
@@ -77,6 +78,12 @@ export const CHANNELS = {
   labOpenFile: 'lab:openFile',
   openUrl: 'shell:openUrl',
   onboardingFinish: 'onboarding:finish',
+  backupStatus: 'backup:status',
+  backupChooseFolder: 'backup:chooseFolder',
+  backupUseFolder: 'backup:useFolder',
+  backupDisable: 'backup:disable',
+  backupNow: 'backup:now',
+  backupRestore: 'backup:restore',
   /** Pushed from main when projects change outside a renderer request (e.g. Git refresh). */
   projectsChanged: 'projects:changed',
   logRendererError: 'log:rendererError',
@@ -137,6 +144,16 @@ export interface HudApi {
   openUrl(url: string): Promise<void>;
   /** Finishes first-run setup; returns everything the HUD needs afterwards. */
   finishOnboarding(input: OnboardingInput): Promise<BootstrapData>;
+
+  // Backups to a folder such as Google Drive.
+  backupStatus(): Promise<BackupStatus>;
+  /** Shows the folder picker; null when cancelled. */
+  backupChooseFolder(): Promise<BackupStatus | null>;
+  backupUseFolder(folder: string): Promise<BackupStatus>;
+  backupDisable(): Promise<BackupStatus>;
+  backupNow(): Promise<BackupStatus>;
+  /** Restores that day's backup, then the app restarts. */
+  backupRestore(day: string): Promise<void>;
 }
 
 /** Address the renderer uses to show a Lab image; served only from the app's media. */

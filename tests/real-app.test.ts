@@ -48,13 +48,13 @@ describe('daily backups', () => {
 describe('first-run setup', () => {
   it('starts a fresh install empty and not set up', async () => {
     const store = await JsonStore.open(await tempDir());
-    expect(store.getSettings()).toEqual({ onboarded: false });
+    expect(store.getSettings()).toMatchObject({ onboarded: false, backupFolder: null });
     expect(store.listProjects()).toHaveLength(0);
   });
 
   it('counts upgraded data as already set up', () => {
     const v2 = { version: 2, worlds: [], projects: [], pauses: [], entries: [], events: [] };
-    expect(migrateStoreData(v2)?.settings).toEqual({ onboarded: true });
+    expect(migrateStoreData(v2)?.settings).toMatchObject({ onboarded: true, backupFolder: null });
   });
 
   it('creates chosen worlds once, adds examples into matching worlds, and finishes setup', async () => {

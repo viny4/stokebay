@@ -5,6 +5,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { PauseDialog } from './components/PauseDialog';
 import { ProjectDialog } from './components/ProjectDialog';
 import { ScanDialog } from './components/ScanDialog';
+import { SettingsDialog } from './components/SettingsDialog';
 import { Button, inputClass } from './components/ui';
 import { subscribeToMain, useHud } from './store/useHud';
 import { ArchivedView } from './views/ArchivedView';
@@ -99,6 +100,8 @@ function Shell() {
           <ProjectDialog key="project" dialog={dialog} />
         ) : dialog.kind === 'pause' ? (
           <PauseDialog key="pause" projectId={dialog.projectId} />
+        ) : dialog.kind === 'settings' ? (
+          <SettingsDialog key="settings" />
         ) : dialog.kind === 'scan' ? (
           <ScanDialog key="scan" />
         ) : dialog.kind === 'confirm' ? (
@@ -175,6 +178,13 @@ function TopBar({ searchRef }: { searchRef: React.RefObject<HTMLInputElement | n
             + Ignite
           </Button>
           <Button onClick={() => openDialog({ kind: 'scan' })}>Scan folder</Button>
+          <Button
+            aria-label="Settings"
+            title="Settings"
+            onClick={() => openDialog({ kind: 'settings' })}
+          >
+            ⚙
+          </Button>
           <Button
             aria-pressed={view === 'archived'}
             onClick={() => setView(view === 'archived' ? 'grid' : 'archived')}

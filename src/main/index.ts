@@ -3,6 +3,7 @@ import started from 'electron-squirrel-startup';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { CHANNELS } from '../shared/ipc';
+import { BackupController } from './backup-controller';
 import { registerIpcHandlers } from './ipc/handlers';
 import { createLogger, enableFileLogging, setLogLevel } from './logging/logger';
 import { runDailyBackup } from './services/backup';
@@ -71,15 +72,35 @@ if (!app.requestSingleInstanceLock()) {
     const store = await JsonStore.open(dataDir);
     log.info('data loaded', { dataDir });
 
-    // Once at startup, then every few hours for apps left open for days.
-    const backup = () =>
-      runDailyBackup(store.file, path.join(dataDir, 'backups'))
-        .then((file) => file && log.info('daily backup written', { file: path.basename(file) }))
-        .catch((err: unknown) => log.error('daily backup failed', { error: String(err) }));
+    const service = new ProjectService(store);
+    const backups = new BackupController({
+      service,
+      dataDir,
+      flush: () => store.flush(),
+      restart: () => {
+        app.relaunch();
+        app.exit(0);
+      },
+    });
+
+    // Once at startup, then every few hours for apps left open for days: the local daily copy,
+    // and the copy to the user's backup folder (e.g. Google Drive) if one is set.
+    const backup = async () => {
+      try {
+        const file = await runDailyBackup(store.file, path.join(dataDir, 'backups'));
+        if (file) log.info('daily backup written', { file: path.basename(file) });
+      } catch (err) {
+        log.error('daily backup failed', { error: String(err) });
+      }
+      try {
+        if (await backups.backupIfDue()) log.info('folder backup written');
+      } catch (err) {
+        log.error('folder backup failed', { error: String(err) });
+      }
+    };
     void backup();
     setInterval(() => void backup(), 6 * 60 * 60 * 1000).unref();
 
-    const service = new ProjectService(store);
     const git = new GitRefresher({
       list: () => service.projectsWithFolders(),
       save: (updates) => service.saveGitInfo(updates),
@@ -87,7 +108,7 @@ if (!app.requestSingleInstanceLock()) {
     });
     const media = new MediaStore(path.join(dataDir, 'media'));
     const lab = new LabService(store, service, media);
-    registerIpcHandlers({ service, lab, media, git, getWindow: () => mainWindow });
+    registerIpcHandlers({ service, lab, media, backups, git, getWindow: () => mainWindow });
 
     protocol.handle('hud-media', async (request) => {
       const url = new URL(request.url);

@@ -205,6 +205,18 @@ export interface ProjectDetail {
 export interface AppSettings {
   /** False on a fresh install until first-run setup is finished. */
   onboarded: boolean;
+  /** Extra backup destination (e.g. inside Google Drive); null when off. */
+  backupFolder: string | null;
+  lastExternalBackupAt: EpochMs | null;
+}
+
+export interface BackupStatus {
+  folder: string | null;
+  lastBackupAt: EpochMs | null;
+  /** Days that have a backup (YYYY-MM-DD), newest first. */
+  snapshots: string[];
+  /** "My Drive" of Google Drive for desktop, when installed. */
+  googleDrive: string | null;
 }
 
 export interface BootstrapData {

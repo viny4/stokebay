@@ -235,6 +235,11 @@ export const onboardingInput = z.object({
 });
 export type OnboardingInput = z.infer<typeof onboardingInput>;
 
+export const backupUseFolderInput = z.object({ folder: absoluteFolder });
+export const backupRestoreInput = z.object({
+  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a backup date.'),
+});
+
 export type IgniteInput = z.infer<typeof igniteInput>;
 export type PartFields = z.infer<typeof partFieldsSchema>;
 export type LabAddNoteInput = z.infer<typeof labAddNoteInput>;

@@ -32,6 +32,7 @@ export type DialogState =
   | { kind: 'project'; mode: 'edit'; projectId: Id }
   | { kind: 'pause'; projectId: Id }
   | { kind: 'scan' }
+  | { kind: 'settings' }
   | {
       kind: 'confirm';
       title: string;
@@ -149,7 +150,7 @@ export const useHud = create<HudState>()((set, get) => {
     dialog: { kind: 'none' },
     toast: null,
     blueprints: [],
-    settings: { onboarded: true },
+    settings: { onboarded: true, backupFolder: null, lastExternalBackupAt: null },
     labProjectId: null,
     lab: null,
 

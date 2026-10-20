@@ -26,6 +26,8 @@ import {
   labRenameZoneInput,
   labUpdateItemInput,
   labUpdatePartInput,
+  backupRestoreInput,
+  backupUseFolderInput,
   onboardingInput,
   openUrlInput,
   pauseInput,
@@ -39,6 +41,7 @@ import { getBlueprint, listBlueprints } from '../services/blueprints';
 import type { GitRefresher } from '../services/git';
 import type { LabService } from '../services/lab';
 import type { MediaStore } from '../services/media';
+import type { BackupController } from '../backup-controller';
 import { openInEditor } from '../services/launcher';
 import { UserError, type ProjectService } from '../services/projects';
 import { scanFolder } from '../services/scanner';
@@ -51,11 +54,19 @@ export interface HandlerDeps {
   service: ProjectService;
   lab: LabService;
   media: MediaStore;
+  backups: BackupController;
   git: GitRefresher;
   getWindow: () => BrowserWindow | null;
 }
 
-export function registerIpcHandlers({ service, lab, media, git, getWindow }: HandlerDeps): void {
+export function registerIpcHandlers({
+  service,
+  lab,
+  media,
+  backups,
+  git,
+  getWindow,
+}: HandlerDeps): void {
   // Import is only allowed for folders the last scan actually found, so the renderer can't
   // smuggle in arbitrary paths.
   let lastScan: ScanCandidate[] = [];
@@ -246,6 +257,19 @@ export function registerIpcHandlers({ service, lab, media, git, getWindow }: Han
   handle(CHANNELS.onboardingFinish, onboardingInput, ({ worlds, addSamples }) =>
     service.finishOnboarding(worlds, addSamples),
   );
+
+  handle(CHANNELS.backupStatus, emptyInput, () => backups.status());
+  handle(CHANNELS.backupChooseFolder, emptyInput, async () => {
+    const folder = await pickFolder('Choose where to keep backups (e.g. Google Drive › My Drive)');
+    return folder ? backups.useFolder(folder) : null;
+  });
+  handle(CHANNELS.backupUseFolder, backupUseFolderInput, async ({ folder }) => {
+    await assertFolder(folder);
+    return backups.useFolder(folder);
+  });
+  handle(CHANNELS.backupDisable, emptyInput, () => backups.disable());
+  handle(CHANNELS.backupNow, emptyInput, () => backups.backupNow());
+  handle(CHANNELS.backupRestore, backupRestoreInput, ({ day }) => backups.restore(day));
 
   ipcMain.on(CHANNELS.logRendererError, (event, raw: unknown) => {
     if (!isTrustedSender(event)) return;

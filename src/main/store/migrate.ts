@@ -32,7 +32,12 @@ export function migrateStoreData(raw: unknown): StoreData | null {
     ...e,
   }));
   // Someone upgrading already has data, so first-run setup would only get in their way.
-  const settings = { onboarded: true, ...(isObject(raw.settings) ? raw.settings : {}) };
+  const settings = {
+    onboarded: true,
+    backupFolder: null,
+    lastExternalBackupAt: null,
+    ...(isObject(raw.settings) ? raw.settings : {}),
+  };
 
   return {
     ...raw,

@@ -60,6 +60,12 @@ const api: HudApi = {
   pathForFile: (file) => webUtils.getPathForFile(file),
   openUrl: (url) => invoke(CHANNELS.openUrl, { url }),
   finishOnboarding: (input) => invoke(CHANNELS.onboardingFinish, input),
+  backupStatus: () => invoke(CHANNELS.backupStatus),
+  backupChooseFolder: () => invoke(CHANNELS.backupChooseFolder),
+  backupUseFolder: (folder) => invoke(CHANNELS.backupUseFolder, { folder }),
+  backupDisable: () => invoke(CHANNELS.backupDisable),
+  backupNow: () => invoke(CHANNELS.backupNow),
+  backupRestore: (day) => invoke(CHANNELS.backupRestore, { day }),
 };
 
 contextBridge.exposeInMainWorld('api', api);

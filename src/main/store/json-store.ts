@@ -34,7 +34,7 @@ export const BACKUP_COUNT = 5;
 export function emptyStoreData(): StoreData {
   return {
     version: STORE_VERSION,
-    settings: { onboarded: false },
+    settings: { onboarded: false, backupFolder: null, lastExternalBackupAt: null },
     worlds: [],
     projects: [],
     pauses: [],

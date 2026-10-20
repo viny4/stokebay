@@ -2,6 +2,7 @@
 // plus its activity event, saved together.
 import type { ProjectPatch } from '../../shared/schemas';
 import type {
+  AppSettings,
   BootstrapData,
   GitInfo,
   Id,
@@ -32,6 +33,10 @@ export class ProjectService {
       projects: this.summaries(),
       settings: this.repo.getSettings(),
     };
+  }
+
+  async updateSettings(changes: Partial<AppSettings>): Promise<AppSettings> {
+    return this.repo.transaction((tx) => tx.updateSettings(changes));
   }
 
   /**
