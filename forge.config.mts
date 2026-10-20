@@ -72,6 +72,9 @@ const LINUX_PACKAGE = {
   homepage: REPO_URL,
   description: 'A local-first command center for every project you have.',
   productName: 'Stokebay',
+  // The packager names the Linux program after productName ("Stokebay"); the .deb/.rpm tools
+  // otherwise look for one named after the package ("stokebay") and fail to find it.
+  bin: 'Stokebay',
 };
 
 const config: ForgeConfig = {
