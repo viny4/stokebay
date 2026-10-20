@@ -47,3 +47,43 @@ describe('world settings', () => {
     expect(editorById('unknown').id).toBe('vscode');
   });
 });
+
+describe('area activity', () => {
+  it("shows the last week across the area's projects, newest first, with the notes named", async () => {
+    const DAY = 86_400_000;
+    let now = 100 * DAY;
+    const store = await SqliteStore.open(await tempDir());
+    const service = new ProjectService(store, () => now);
+    const music = await service.createWorld('Music');
+    const coding = await service.createWorld('Coding');
+    const song = await service.create({
+      title: 'Song',
+      status: 'active',
+      worldIds: [music.id],
+      path: null,
+    });
+    const app = await service.create({
+      title: 'App',
+      status: 'active',
+      worldIds: [coding.id],
+      path: null,
+    });
+    const old = await service.create({
+      title: 'Old',
+      status: 'active',
+      worldIds: [music.id],
+      path: null,
+    });
+
+    now += 10 * DAY; // project_created events are now more than a week old
+    await service.addNote(song.id, 'Chorus', 'Try it in D');
+    await service.addNote(app.id, 'Bug', 'Crash on save');
+    now += DAY;
+    await service.archive(old.id);
+
+    const activity = service.areaActivity(music.id);
+    expect(activity.events.map((e) => e.type)).toEqual(['note_added']);
+    expect(activity.events[0].projectId).toBe(song.id);
+    expect(activity.entries.map((e) => e.title)).toEqual(['Chorus']);
+  });
+});

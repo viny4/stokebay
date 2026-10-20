@@ -83,6 +83,8 @@ export interface ProjectRepository {
   getEntry(id: Id): Entry | undefined;
   /** Newest first. */
   listEvents(projectId: Id): ActivityEvent[];
+  /** Newest first: events of any of `projectIds` at or after `since`, at most `limit`. */
+  listRecentEvents(projectIds: Id[], since: EpochMs, limit: number): ActivityEvent[];
   listModules(projectId: Id): Module[];
   getModule(id: Id): Module | undefined;
   /** Oldest first, so the Parts Bin keeps the order parts were added. */

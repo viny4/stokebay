@@ -201,11 +201,8 @@ function Sidebar() {
         </NavItem>
       </nav>
 
-      <p className="mt-6 mb-1 px-4 text-[11px] font-semibold text-muted">Worlds</p>
-      <nav
-        aria-label="Filter by world"
-        className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2"
-      >
+      <p className="mt-6 mb-1 px-4 text-[11px] font-semibold text-muted">Areas</p>
+      <nav aria-label="Areas" className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2">
         {worlds.map((w) => (
           <NavItem
             key={w.id}
@@ -222,13 +219,13 @@ function Sidebar() {
           </NavItem>
         ))}
         {worlds.length === 0 ? (
-          <p className="px-2 text-xs text-muted">Add worlds in Settings.</p>
+          <p className="px-2 text-xs text-muted">Add areas in Settings.</p>
         ) : null}
       </nav>
 
       <div className="flex flex-col gap-0.5 border-t border-line p-2">
         <NavItem active={false} onClick={() => openDialog({ kind: 'scan' })}>
-          Scan a folder…
+          Find code projects…
         </NavItem>
         <NavItem active={false} onClick={() => openDialog({ kind: 'settings' })}>
           Settings

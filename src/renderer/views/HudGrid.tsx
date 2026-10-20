@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useDeferredValue, useMemo, useRef } from 'react';
 import { visibleProjects } from '../../shared/filter';
 import type { Id, World } from '../../shared/types';
+import { AreaOverview } from '../components/AreaOverview';
 import { ProjectCard } from '../components/ProjectCard';
 import { Button } from '../components/ui';
 import { useHud } from '../store/useHud';
@@ -32,6 +33,11 @@ export function HudGrid() {
   const worldsById = useMemo(() => new Map<Id, World>(worlds.map((w) => [w.id, w])), [worlds]);
   const live = projects.filter((p) => p.archivedAt === null);
   const hasSamples = live.some((p) => p.isSample);
+  const area = worldFilter ? worldsById.get(worldFilter) : undefined;
+  const areaProjects = useMemo(
+    () => (worldFilter ? projects.filter((p) => p.worldIds.includes(worldFilter)) : []),
+    [projects, worldFilter],
+  );
 
   const onKeyDown = (event: React.KeyboardEvent) => {
     // Only card bodies take part; keys inside menus or the "Pause this?" button pass through.
@@ -49,13 +55,21 @@ export function HudGrid() {
   return (
     <div className="flex flex-col gap-4 p-6">
       {hasSamples ? <SampleBanner /> : null}
+      {area && search.trim() === '' ? <AreaOverview area={area} projects={areaProjects} /> : null}
 
       {live.length === 0 ? (
         <NoProjects />
+      ) : area && visible.length === 0 && search.trim() === '' ? (
+        <p className="text-sm text-muted">
+          No projects in {area.name} yet. Add one from New project, or pick this area when editing a
+          project.
+        </p>
       ) : visible.length === 0 ? (
         <NoMatches />
       ) : (
         <ul
+          // A different area is a different list: swap it instead of animating cards across.
+          key={worldFilter ?? 'all'}
           ref={grid}
           aria-label="Projects"
           onKeyDown={onKeyDown}
@@ -149,7 +163,7 @@ function NoProjects() {
       <Button variant="primary" onClick={() => openDialog({ kind: 'ignite' })}>
         New project
       </Button>
-      <Button onClick={() => openDialog({ kind: 'scan' })}>Scan a folder</Button>
+      <Button onClick={() => openDialog({ kind: 'scan' })}>Find code projects</Button>
     </EmptyState>
   );
 }
@@ -158,7 +172,7 @@ function NoMatches() {
   const setSearch = useHud((s) => s.setSearch);
   const setWorldFilter = useHud((s) => s.setWorldFilter);
   return (
-    <EmptyState title="No projects match" body="Try a different search or world.">
+    <EmptyState title="No projects match" body="Try a different search or area.">
       <Button
         onClick={() => {
           setSearch('');

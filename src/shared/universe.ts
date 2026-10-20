@@ -89,7 +89,7 @@ export function layoutUniverse(
     const world = worlds.find((w) => w.id === worldId);
     sectors.push({
       worldId,
-      name: world?.name ?? 'No world',
+      name: world?.name ?? 'No area',
       color: world?.color ?? UNSORTED_COLOR,
       startAngle: angle,
       endAngle: angle + span,

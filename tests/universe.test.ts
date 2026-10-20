@@ -50,13 +50,13 @@ describe('orbitRadius', () => {
 describe('layoutUniverse', () => {
   const worlds = [world('w1', 'Coding'), world('w2', 'Music')];
 
-  it('gives each world with projects a slice, plus "No world", covering the full circle', () => {
+  it('gives each world with projects a slice, plus "No area", covering the full circle', () => {
     const { sectors } = layoutUniverse(
       [project('a', { worldIds: ['w1'] }), project('b', { worldIds: ['w1'] }), project('c')],
       worlds,
       NOW,
     );
-    expect(sectors.map((s) => s.name)).toEqual(['Coding', 'No world']);
+    expect(sectors.map((s) => s.name)).toEqual(['Coding', 'No area']);
     const covered = sectors.reduce((sum, s) => sum + (s.endAngle - s.startAngle), 0);
     expect(covered).toBeCloseTo(2 * Math.PI);
   });

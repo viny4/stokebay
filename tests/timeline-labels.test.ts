@@ -45,7 +45,7 @@ describe('timelineLabel', () => {
 
   it('lists edited fields in user words', () => {
     expect(timelineLabel(event('project_updated', { fields: ['title', 'worldIds'] }), none)).toBe(
-      'Edited title, worlds',
+      'Edited title, areas',
     );
     expect(timelineLabel(event('project_updated', { fields: ['path', 'status'] }), none)).toBe(
       'Edited folder, status',

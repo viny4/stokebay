@@ -147,3 +147,13 @@ select:focus-visible {
 input[type='search']::-webkit-search-cancel-button {
   -webkit-appearance: none;
 }
+
+/* Indeterminate progress bar (scan in progress). */
+@keyframes scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}

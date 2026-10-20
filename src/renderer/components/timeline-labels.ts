@@ -9,7 +9,7 @@ export const SNIPPET_MAX = 48;
 const FIELD_LABEL: Record<string, string> = {
   title: 'title',
   status: 'status',
-  worldIds: 'worlds',
+  worldIds: 'areas',
   path: 'folder',
 };
 

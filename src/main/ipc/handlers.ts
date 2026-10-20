@@ -1,5 +1,6 @@
 import { app, dialog, ipcMain, shell, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import type { z } from 'zod';
 import { editorById } from '../../shared/editors';
 import { CHANNELS, type IpcResult } from '../../shared/ipc';
@@ -11,6 +12,7 @@ import {
   emptyInput,
   idInput,
   searchInput,
+  areaInput,
   igniteInput,
   labAddChecklistInput,
   labAddFilesInput,
@@ -48,7 +50,7 @@ import type { MediaStore } from '../services/media';
 import type { BackupController } from '../backup-controller';
 import { openInEditor } from '../services/launcher';
 import { UserError, type ProjectService } from '../services/projects';
-import { scanFolder } from '../services/scanner';
+import { findGitRepos, scanFolder } from '../services/scanner';
 import { isAppUrl } from '../window';
 
 const log = createLogger('ipc');
@@ -125,6 +127,7 @@ export function registerIpcHandlers({
   handle(CHANNELS.projectsResume, idInput, ({ id }) => service.resume(id));
   handle(CHANNELS.projectsDetail, idInput, ({ id }) => service.detail(id));
   handle(CHANNELS.searchQuery, searchInput, ({ query }) => service.search(query));
+  handle(CHANNELS.areasActivity, areaInput, ({ worldId }) => service.areaActivity(worldId));
 
   handle(CHANNELS.entriesAddNote, addNoteInput, ({ projectId, title, body }) =>
     service.addNote(projectId, title, body),
@@ -145,26 +148,41 @@ export function registerIpcHandlers({
 
   handle(CHANNELS.dialogPickFolder, emptyInput, () => pickFolder('Choose the project folder'));
 
-  handle(CHANNELS.scanPickAndRun, emptyInput, async (): Promise<ScanResult | null> => {
-    const root = await pickFolder('Choose a folder to scan for projects');
-    if (!root) return null;
-    const started = Date.now();
-    const { candidates, truncated } = await scanFolder(root);
+  /** Leaves out folders that are already projects and remembers the rest for import. */
+  const scanResult = (
+    root: string,
+    found: { candidates: ScanCandidate[]; truncated: boolean },
+    started: number,
+  ): ScanResult => {
     const known = new Set(service.bootstrap().projects.map((p) => p.path));
-    const fresh = candidates.filter((c) => !known.has(c.path));
+    const fresh = found.candidates.filter((c) => !known.has(c.path));
     lastScan = fresh;
     log.info('scan finished', {
-      found: candidates.length,
+      found: found.candidates.length,
       fresh: fresh.length,
-      truncated,
+      truncated: found.truncated,
       durationMs: Date.now() - started,
     });
     return {
       root,
       candidates: fresh,
-      alreadyImported: candidates.length - fresh.length,
-      truncated,
+      alreadyImported: found.candidates.length - fresh.length,
+      truncated: found.truncated,
     };
+  };
+
+  handle(CHANNELS.scanPickAndRun, emptyInput, async (): Promise<ScanResult | null> => {
+    const root = await pickFolder('Choose a folder to scan for projects');
+    if (!root) return null;
+    const started = Date.now();
+    return scanResult(root, await scanFolder(root), started);
+  });
+
+  // The whole home folder, Git projects only: no folder to pick.
+  handle(CHANNELS.scanComputer, emptyInput, async (): Promise<ScanResult> => {
+    const root = os.homedir();
+    const started = Date.now();
+    return scanResult(root, await findGitRepos(root), started);
   });
 
   handle(CHANNELS.scanImport, scanImportInput, async ({ paths, worldIds }) => {

@@ -143,6 +143,18 @@ export class SqliteStore implements ProjectRepository {
     ).map(toEvent);
   }
 
+  listRecentEvents(projectIds: Id[], since: number, limit: number): ActivityEvent[] {
+    if (projectIds.length === 0) return [];
+    return this.all(
+      `SELECT * FROM events
+       WHERE project_id IN (SELECT value FROM json_each(?)) AND created_at >= ?
+       ORDER BY created_at DESC, id DESC LIMIT ?`,
+      JSON.stringify(projectIds),
+      since,
+      limit,
+    ).map(toEvent);
+  }
+
   listModules(projectId: Id): Module[] {
     return this.all(
       'SELECT * FROM modules WHERE project_id = ? ORDER BY sort_order, rowid',

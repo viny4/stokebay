@@ -58,9 +58,9 @@ export function WorldsSettings() {
 
   return (
     <section aria-labelledby="settings-worlds" className="flex flex-col gap-3">
-      <SectionHeading id="settings-worlds">Worlds</SectionHeading>
+      <SectionHeading id="settings-worlds">Areas</SectionHeading>
       <p className="-mt-2 text-sm leading-relaxed text-muted">
-        The groups your projects belong to. Deleting a world keeps its projects; they just lose the
+        The groups your projects belong to. Deleting an area keeps its projects; they just lose the
         tag.
       </p>
       <ul className="flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
@@ -73,8 +73,8 @@ export function WorldsSettings() {
               openDialog({
                 kind: 'confirm',
                 title: `Delete "${world.name}"?`,
-                message: 'The world is removed. Its projects stay, just without this tag.',
-                confirmLabel: 'Delete world',
+                message: 'The area is removed. Its projects stay, just without this tag.',
+                confirmLabel: 'Delete area',
                 danger: true,
                 onConfirm: () => deleteWorld(world.id),
               })
@@ -82,13 +82,13 @@ export function WorldsSettings() {
           />
         ))}
         {worlds.length === 0 ? (
-          <li className="px-3 py-2.5 text-sm text-muted">No worlds yet.</li>
+          <li className="px-3 py-2.5 text-sm text-muted">No areas yet.</li>
         ) : null}
       </ul>
       <div className="flex gap-2">
         <input
-          aria-label="New world name"
-          placeholder="New world, e.g. Robotics"
+          aria-label="New area name"
+          placeholder="New area, e.g. Robotics"
           value={draft}
           maxLength={40}
           onChange={(e) => setDraft(e.target.value)}

@@ -201,6 +201,14 @@ export interface ProjectDetail {
   events: ActivityEvent[];
 }
 
+/** What happened lately across one area's projects (for the area overview). */
+export interface AreaActivity {
+  /** Newest first. */
+  events: ActivityEvent[];
+  /** Entries those events mention, so notes can be named in the list. */
+  entries: Entry[];
+}
+
 /** Wraps the matched words inside a search snippet (control characters never typed by users). */
 export const SNIPPET_OPEN = '\u0001';
 export const SNIPPET_CLOSE = '\u0002';
@@ -271,6 +279,8 @@ export interface ScanCandidate {
   path: string;
   name: string;
   hasGit: boolean;
+  /** Roughly when Git last recorded work here (commit, checkout); only from the computer search. */
+  lastTouchedAt?: EpochMs;
 }
 
 export interface ScanResult {

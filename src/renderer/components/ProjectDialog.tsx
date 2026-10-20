@@ -273,7 +273,7 @@ function WorldPicker({
 
   return (
     <fieldset className="flex flex-col gap-1.5" aria-describedby={error ? legendId : undefined}>
-      <legend className="mb-1.5 text-[13px] font-medium text-ink">Worlds</legend>
+      <legend className="mb-1.5 text-[13px] font-medium text-ink">Areas</legend>
       <div className="flex flex-wrap items-center gap-2">
         {worlds.map((w) => {
           const on = selected.includes(w.id);
@@ -311,8 +311,8 @@ function WorldPicker({
             onBlur={() => {
               if (name.trim() === '' && !busy) cancelAdd();
             }}
-            placeholder="World name, Enter to add"
-            aria-label="New world name"
+            placeholder="Area name, Enter to add"
+            aria-label="New area name"
             aria-invalid={worldError ? true : undefined}
             className={`${inputClass} h-7 w-52 rounded-full py-0 text-xs`}
           />
@@ -322,7 +322,7 @@ function WorldPicker({
             onClick={() => setAdding(true)}
             className="h-7 rounded-full border border-dashed border-line-strong px-2.5 text-xs text-muted hover:bg-hover hover:text-ink"
           >
-            + New world
+            + New area
           </button>
         )}
       </div>
@@ -335,7 +335,7 @@ function WorldPicker({
           {error}
         </p>
       ) : worlds.length === 0 && !adding ? (
-        <p className="text-xs text-muted">Worlds group your projects, like Coding or Music.</p>
+        <p className="text-xs text-muted">Areas group your projects, like Coding or Music.</p>
       ) : null}
     </fieldset>
   );

@@ -1,4 +1,4 @@
-// World toggle chips with an inline "+ New world" input, used by the New project sheet.
+// Area toggle chips with an inline "+ New area" input, used by the New project sheet.
 // Same behaviour as the project dialog's picker; kept separate so each screen can be styled
 // without touching the other.
 import { useState, type KeyboardEvent } from 'react';
@@ -61,7 +61,7 @@ export function WorldChips({
 
   return (
     <fieldset className="flex flex-col gap-1.5" disabled={disabled}>
-      <legend className="mb-1.5 text-[13px] font-medium text-ink">Worlds</legend>
+      <legend className="mb-1.5 text-[13px] font-medium text-ink">Areas</legend>
       <div className="flex flex-wrap items-center gap-2">
         {worlds.map((w) => {
           const on = selected.includes(w.id);
@@ -99,8 +99,8 @@ export function WorldChips({
             onBlur={() => {
               if (name.trim() === '' && !busy) cancelAdd();
             }}
-            placeholder="World name, Enter to add"
-            aria-label="New world name"
+            placeholder="Area name, Enter to add"
+            aria-label="New area name"
             aria-invalid={error ? true : undefined}
             className={`${inputClass} h-7 w-52 rounded-full py-0 text-xs`}
           />
@@ -110,7 +110,7 @@ export function WorldChips({
             onClick={() => setAdding(true)}
             className="inline-flex h-7 items-center rounded-full px-3 text-xs text-muted hover:bg-hover hover:text-ink"
           >
-            + New world
+            + New area
           </button>
         )}
       </div>
@@ -119,7 +119,7 @@ export function WorldChips({
           {error}
         </p>
       ) : worlds.length === 0 && !adding ? (
-        <p className="text-xs text-muted">Worlds group your projects, like Coding or Music.</p>
+        <p className="text-xs text-muted">Areas group your projects, like Coding or Music.</p>
       ) : null}
     </fieldset>
   );

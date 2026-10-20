@@ -116,6 +116,7 @@ export interface HudState {
   pickFolder(): Promise<string | null>;
   /** Opens the folder picker and scans it; null if the user cancelled. */
   scanFolder(): Promise<ScanResult | null>;
+  scanComputer(): Promise<ScanResult>;
   importScanned(input: ScanImportInput): Promise<ProjectSummary[]>;
   openInEditor(id: Id): Promise<void>;
   revealInFinder(id: Id): Promise<void>;
@@ -322,6 +323,7 @@ export const useHud = create<HudState>()((set, get) => {
     },
     pickFolder: () => window.api.pickFolder(),
     scanFolder: () => window.api.scanFolder(),
+    scanComputer: () => window.api.scanComputer(),
     async importScanned(input) {
       const created = await window.api.importScanned(input);
       set((s) => ({ projects: [...s.projects, ...created] }));

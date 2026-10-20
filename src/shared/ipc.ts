@@ -26,6 +26,7 @@ import type {
 import type { EditorId } from './editors';
 import type {
   AppSettings,
+  AreaActivity,
   BackupStatus,
   Blueprint,
   BootstrapData,
@@ -57,6 +58,7 @@ export const CHANNELS = {
   worldsCreate: 'worlds:create',
   dialogPickFolder: 'dialog:pickFolder',
   scanPickAndRun: 'scan:pickAndRun',
+  scanComputer: 'scan:computer',
   scanImport: 'scan:import',
   launchEditor: 'launch:editor',
   launchReveal: 'launch:reveal',
@@ -96,6 +98,7 @@ export const CHANNELS = {
   projectsChanged: 'projects:changed',
   logRendererError: 'log:rendererError',
   searchQuery: 'search:query',
+  areasActivity: 'areas:activity',
 } as const;
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };
@@ -114,12 +117,16 @@ export interface HudApi {
   getProjectDetail(id: Id): Promise<ProjectDetail>;
   /** Full-text search over project titles and everything inside projects. */
   search(query: string): Promise<SearchHit[]>;
+  /** The last week of activity across one area's projects. */
+  areaActivity(worldId: Id): Promise<AreaActivity>;
   addNote(input: AddNoteInput): Promise<ProjectDetail>;
   addLink(input: AddLinkInput): Promise<ProjectDetail>;
   openLink(entryId: Id): Promise<void>;
   createWorld(name: string): Promise<World>;
   pickFolder(): Promise<string | null>;
   scanFolder(): Promise<ScanResult | null>;
+  /** Finds every Git project in the home folder. */
+  scanComputer(): Promise<ScanResult>;
   importScanned(input: ScanImportInput): Promise<ProjectSummary[]>;
   openInEditor(id: Id): Promise<LaunchResult>;
   revealInFinder(id: Id): Promise<void>;

@@ -132,12 +132,10 @@ export function StartStep({
             className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
           />
           <span className="flex flex-col gap-1">
-            <span className="text-[13px] font-medium text-ink">
-              Scan a folder for my code projects
-            </span>
+            <span className="text-[13px] font-medium text-ink">Find my code projects</span>
             <span id={scanHint} className="text-xs leading-relaxed text-muted">
-              Optional, for coders. After setup you pick a folder; Stokebay lists the code projects
-              inside it and you choose which to add.
+              Optional, for coders. After setup Stokebay lists the Git projects on this computer and
+              you choose which to add.
             </span>
           </span>
         </label>

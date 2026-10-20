@@ -10,10 +10,12 @@ import type {
   ProjectDetail,
   ProjectSummary,
   SearchHit,
+  AreaActivity,
   ScanCandidate,
   SettableStatus,
   World,
 } from '../../shared/types';
+import { DAY as DAY_MS } from '../../shared/time';
 import { newId } from '../store/ids';
 import type { ProjectChanges, ProjectRepository } from '../store/repository';
 import { createSampleData, WORLD_PALETTE } from '../store/sample-data';
@@ -88,6 +90,21 @@ export class ProjectService {
 
   summary(id: Id): ProjectSummary {
     return this.toSummary(this.require(id));
+  }
+
+  /** The last week of activity across an area's projects (archived ones left out). */
+  areaActivity(worldId: Id, days = 7, limit = 12): AreaActivity {
+    const ids = this.repo
+      .listProjects()
+      .filter((p) => p.archivedAt === null && p.worldIds.includes(worldId))
+      .map((p) => p.id);
+    const events = this.repo.listRecentEvents(ids, this.clock() - days * DAY_MS, limit);
+    const entries = events.flatMap((e) => {
+      const entryId = e.payload.entryId;
+      const entry = typeof entryId === 'string' ? this.repo.getEntry(entryId) : undefined;
+      return entry ? [entry] : [];
+    });
+    return { events, entries };
   }
 
   search(query: string): SearchHit[] {
@@ -273,7 +290,7 @@ export class ProjectService {
   async createWorld(name: string): Promise<World> {
     const existing = this.repo.listWorlds();
     if (existing.some((w) => w.name.toLowerCase() === name.toLowerCase())) {
-      throw new UserError(`There's already a world called "${name}".`);
+      throw new UserError(`There's already an area called "${name}".`);
     }
     const color = WORLD_PALETTE[existing.length % WORLD_PALETTE.length];
     return this.repo.transaction((tx) => tx.createWorld({ name, color }));
@@ -281,10 +298,10 @@ export class ProjectService {
 
   async updateWorld(id: Id, changes: { name?: string; color?: string }): Promise<World> {
     const worlds = this.repo.listWorlds();
-    if (!worlds.some((w) => w.id === id)) throw new UserError('That world no longer exists.');
+    if (!worlds.some((w) => w.id === id)) throw new UserError('That area no longer exists.');
     const name = changes.name?.trim();
     if (name && worlds.some((w) => w.id !== id && w.name.toLowerCase() === name.toLowerCase())) {
-      throw new UserError(`There's already a world called "${name}".`);
+      throw new UserError(`There's already an area called "${name}".`);
     }
     return this.repo.transaction((tx) =>
       tx.updateWorld(id, {
@@ -297,7 +314,7 @@ export class ProjectService {
   /** Removes the world; its projects stay and simply lose the tag. */
   async deleteWorld(id: Id): Promise<BootstrapData> {
     if (!this.repo.listWorlds().some((w) => w.id === id)) {
-      throw new UserError('That world no longer exists.');
+      throw new UserError('That area no longer exists.');
     }
     await this.repo.transaction((tx) => tx.deleteWorld(id));
     return this.bootstrap();

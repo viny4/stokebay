@@ -74,13 +74,13 @@ export function WorldsStep({
           What do you make?
         </h1>
         <p className="max-w-xl text-sm leading-relaxed text-muted">
-          Pick the kinds of things you work on. Each one becomes a world: a group your projects
-          belong to.
+          Pick the kinds of things you work on. Each one becomes an area: a group your projects
+          belong to. You can skip this.
         </p>
       </div>
 
       <div className="panel flex flex-col gap-5 p-5" style={panelStyle}>
-        <div role="group" aria-label="Worlds" className="flex flex-wrap gap-2">
+        <div role="group" aria-label="Areas" className="flex flex-wrap gap-2">
           {chipNames(picks).map((name) => {
             const on = isSelected(picks, name);
             return (
@@ -146,7 +146,7 @@ export function WorldsStep({
           {count === 0
             ? 'Picking at least one helps organise your projects, but you can skip this. '
             : ''}
-          You can rename, add or remove worlds later.
+          You can rename, add or remove areas later.
         </p>
       </div>
     </section>

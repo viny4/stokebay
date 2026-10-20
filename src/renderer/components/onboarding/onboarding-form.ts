@@ -21,7 +21,7 @@ export const SUGGESTED_WORLDS: readonly string[] = [
 export const MAX_WORLDS = 20;
 export const MAX_WORLD_NAME = 40;
 
-export const STEPS = ['Welcome', 'Worlds', 'Start'] as const;
+export const STEPS = ['Welcome', 'Areas', 'Start'] as const;
 export const LAST_STEP = STEPS.length - 1;
 
 export interface WorldPicks {
@@ -51,7 +51,7 @@ export function chipNames(picks: WorldPicks): string[] {
   return [...SUGGESTED_WORLDS, ...picks.custom];
 }
 
-const fullMessage = `You can pick up to ${MAX_WORLDS} worlds for now. Add more later.`;
+const fullMessage = `You can pick up to ${MAX_WORLDS} areas for now. Add more later.`;
 
 export function toggleWorld(picks: WorldPicks, name: string): PickResult {
   if (isSelected(picks, name)) {
@@ -70,9 +70,9 @@ export function toggleWorld(picks: WorldPicks, name: string): PickResult {
  */
 export function addCustomWorld(picks: WorldPicks, raw: string): PickResult {
   const name = cleanWorldName(raw);
-  if (!name) return { ok: false, message: 'Type a name for your world first.' };
+  if (!name) return { ok: false, message: 'Type a name for your area first.' };
   if (name.length > MAX_WORLD_NAME) {
-    return { ok: false, message: `World names can be up to ${MAX_WORLD_NAME} characters.` };
+    return { ok: false, message: `Area names can be up to ${MAX_WORLD_NAME} characters.` };
   }
   const existing = chipNames(picks).find((c) => same(c, name));
   if (existing && isSelected(picks, existing)) return { ok: true, picks };
@@ -97,7 +97,7 @@ export function buildOnboardingInput(picks: WorldPicks, addSamples: boolean): Bu
       ok: false,
       message:
         issue.path.length > 1
-          ? `Each world name needs 1–${MAX_WORLD_NAME} characters.`
+          ? `Each area name needs 1–${MAX_WORLD_NAME} characters.`
           : `Pick up to ${MAX_WORLDS} worlds.`,
     };
   }

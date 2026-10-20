@@ -131,6 +131,15 @@ export class JsonStore implements ProjectRepository {
     return newestFirst(this.data.events.filter((e) => e.projectId === projectId));
   }
 
+  listRecentEvents(projectIds: Id[], since: number, limit: number): ActivityEvent[] {
+    const ids = new Set(projectIds);
+    return newestFirst(
+      this.data.events.filter(
+        (e) => e.projectId !== null && ids.has(e.projectId) && e.createdAt >= since,
+      ),
+    ).slice(0, limit);
+  }
+
   listModules(projectId: Id): Module[] {
     return this.data.modules
       .filter((m) => m.projectId === projectId)

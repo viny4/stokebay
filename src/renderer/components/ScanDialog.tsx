@@ -1,8 +1,10 @@
-// Scan a folder for code projects and import the chosen ones (prototype step 7).
-// Scanning and the "already imported" filtering happen in main; this dialog only lets the
-// user pick from what main found, which is also the only set main will accept on import.
+// Find code projects and import the chosen ones. Opening the dialog searches the whole home
+// folder for Git projects straight away; "Choose a folder instead" scans one folder (Git or
+// package.json). Scanning and the "already imported" filtering happen in main; this dialog only
+// lets the user pick from what main found, which is also the only set main will accept.
 import { AnimatePresence, motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { formatRelative } from '../../shared/time';
 import type { ScanResult } from '../../shared/types';
 import { errorMessage, useHud } from '../store/useHud';
 import { Button, Dialog } from './ui';
@@ -20,6 +22,7 @@ type Busy = 'idle' | 'scanning' | 'importing';
 export function ScanDialog() {
   const worlds = useHud((s) => s.worlds);
   const scanFolder = useHud((s) => s.scanFolder);
+  const scanComputer = useHud((s) => s.scanComputer);
   const importScanned = useHud((s) => s.importScanned);
   const closeDialog = useHud((s) => s.closeDialog);
   const showToast = useHud((s) => s.showToast);
@@ -27,10 +30,27 @@ export function ScanDialog() {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [selected, setSelected] = useState<Set<string>>(selectNone);
   const [worldIds, setWorldIds] = useState<Set<string>>(selectNone);
-  const [busy, setBusy] = useState<Busy>('idle');
+  const [busy, setBusy] = useState<Busy>('scanning');
+  const [wholeComputer, setWholeComputer] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const chosen = result ? selectedPaths(result.candidates, selected) : [];
+
+  const searchComputer = async () => {
+    setBusy('scanning');
+    setError(null);
+    try {
+      const next = await scanComputer();
+      setWholeComputer(true);
+      setResult(next);
+      // Nothing ticked: a whole computer turns up forks and experiments too, so the user picks.
+      setSelected(selectNone());
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy('idle');
+    }
+  };
 
   const runScan = async () => {
     setBusy('scanning');
@@ -39,6 +59,7 @@ export function ScanDialog() {
       const next = await scanFolder();
       // A cancelled picker keeps whatever is on screen, so "Choose another folder" is safe.
       if (next) {
+        setWholeComputer(false);
         setResult(next);
         setSelected(selectAll(next.candidates));
       }
@@ -48,6 +69,16 @@ export function ScanDialog() {
       setBusy('idle');
     }
   };
+
+  // Search as soon as the dialog opens: no folder to pick. (The ref stops React's development
+  // double-run from searching twice.)
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    void searchComputer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const runImport = async () => {
     if (chosen.length === 0) return;
@@ -70,7 +101,7 @@ export function ScanDialog() {
 
   return (
     <Dialog
-      title="Scan a folder for projects"
+      title="Find your code projects"
       width="max-w-2xl"
       onClose={closeDialog}
       footer={
@@ -98,27 +129,27 @@ export function ScanDialog() {
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.14 }}
           >
-            <p className="text-sm leading-relaxed text-ink">
-              Pick a folder and the app will look for projects inside it: any folder with a{' '}
-              <code className="rounded bg-sunken px-1 py-0.5 font-mono text-[12px] text-ink">
-                .git
-              </code>{' '}
-              folder or a{' '}
-              <code className="rounded bg-sunken px-1 py-0.5 font-mono text-[12px] text-ink">
-                package.json
-              </code>
-              , up to 3 levels deep.
+            <p className="text-sm text-ink">
+              {busy === 'scanning'
+                ? 'Looking for Git projects on this computer…'
+                : 'Couldn’t search this computer.'}
             </p>
-            <ul className="list-disc space-y-1 pl-5 text-xs text-muted">
-              <li>Skips node_modules, dist, build, .next, venv and hidden folders.</li>
-              <li>A Git repo counts as one project; folders inside it are not listed again.</li>
-              <li>Nothing leaves your computer.</li>
-            </ul>
-            <div>
-              <Button variant="primary" onClick={() => void runScan()} disabled={disabled}>
-                {busy === 'scanning' ? 'Scanning…' : 'Choose folder…'}
-              </Button>
-            </div>
+            <p className="text-xs text-muted">
+              Searches your home folder for folders with Git, skipping system and app folders.
+              Nothing leaves your computer.
+            </p>
+            {busy === 'scanning' ? (
+              <div aria-hidden className="h-1 overflow-hidden rounded-full bg-sunken">
+                <div className="h-full w-1/3 animate-[scan_1.1s_ease-in-out_infinite] rounded-full bg-accent/60" />
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Button variant="primary" onClick={() => void searchComputer()}>
+                  Try again
+                </Button>
+                <Button onClick={() => void runScan()}>Choose a folder instead…</Button>
+              </div>
+            )}
           </motion.div>
         ) : (
           <motion.div
@@ -131,7 +162,9 @@ export function ScanDialog() {
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-muted">Scanned</p>
+                <p className="text-xs text-muted">
+                  {wholeComputer ? 'Searched your home folder for Git projects' : 'Scanned'}
+                </p>
                 <p
                   className="selectable mt-0.5 break-all text-sm font-medium text-ink"
                   title={result.root}
@@ -139,15 +172,26 @@ export function ScanDialog() {
                   {result.root}
                 </p>
               </div>
-              <Button className="shrink-0" onClick={() => void runScan()} disabled={disabled}>
-                {busy === 'scanning' ? 'Scanning…' : 'Choose another folder'}
-              </Button>
+              <div className="flex shrink-0 gap-2">
+                {wholeComputer ? null : (
+                  <Button onClick={() => void searchComputer()} disabled={disabled}>
+                    Search whole computer
+                  </Button>
+                )}
+                <Button onClick={() => void runScan()} disabled={disabled}>
+                  {busy === 'scanning'
+                    ? 'Scanning…'
+                    : wholeComputer
+                      ? 'Choose a folder instead…'
+                      : 'Choose another folder'}
+                </Button>
+              </div>
             </div>
 
             {result.truncated ? (
               <p className="rounded-md border border-line bg-sunken px-3 py-2 text-xs text-muted">
-                Stopped early because the folder is very large; pick a smaller folder to see
-                everything.
+                Stopped early because there are a very large number of folders; choose a folder to
+                search it completely.
               </p>
             ) : null}
 
@@ -158,6 +202,7 @@ export function ScanDialog() {
             ) : (
               <CandidateList
                 result={result}
+                wholeComputer={wholeComputer}
                 selected={selected}
                 disabled={disabled}
                 onToggle={(path) => setSelected((s) => toggle(s, path))}
@@ -177,7 +222,7 @@ export function ScanDialog() {
             {result.candidates.length > 0 && worlds.length > 0 ? (
               <fieldset className="flex flex-col gap-2">
                 <legend className="mb-2 text-[13px] font-semibold text-ink">
-                  Add to worlds (optional)
+                  Add to areas (optional)
                 </legend>
                 <div className="flex flex-wrap gap-2">
                   {worlds.map((world) => {
@@ -223,6 +268,7 @@ export function ScanDialog() {
 
 function CandidateList({
   result,
+  wholeComputer,
   selected,
   disabled,
   onToggle,
@@ -230,6 +276,7 @@ function CandidateList({
   onNone,
 }: {
   result: ScanResult;
+  wholeComputer: boolean;
   selected: ReadonlySet<string>;
   disabled: boolean;
   onToggle: (path: string) => void;
@@ -237,6 +284,7 @@ function CandidateList({
   onNone: () => void;
 }) {
   const count = result.candidates.length;
+  const now = Date.now();
   const checked = result.candidates.filter((c) => selected.has(c.path)).length;
   return (
     <div className="flex flex-col gap-2">
@@ -282,10 +330,16 @@ function CandidateList({
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm text-ink">{c.name}</span>
                 <span className="block truncate text-xs text-muted">
+                  {wholeComputer ? '~/' : ''}
                   {relativePath(result.root, c.path)}
                 </span>
               </span>
-              {c.hasGit ? (
+              {c.lastTouchedAt ? (
+                <span className="shrink-0 text-xs text-muted">
+                  {formatRelative(c.lastTouchedAt, now)}
+                </span>
+              ) : null}
+              {c.hasGit && !wholeComputer ? (
                 <span className="shrink-0 rounded-full bg-sunken px-2 py-0.5 text-[11px] text-muted">
                   Git
                 </span>
