@@ -48,6 +48,9 @@ export function timelineLabel(event: ActivityEvent, entries: ReadonlyMap<Id, Ent
     case 'project_restored':
       return 'Restored';
     case 'project_paused':
+      if (event.payload.auto === true && typeof event.payload.days === 'number') {
+        return `Paused automatically after ${event.payload.days} days`;
+      }
       return 'Paused';
     case 'project_resumed':
       return 'Resumed';
@@ -85,7 +88,9 @@ export function timelineLabel(event: ActivityEvent, entries: ReadonlyMap<Id, Ent
       return count === 1 ? 'New commit' : `${count} new commits`;
     }
     case 'project_reviewed':
-      return 'Weekly review: keep going';
+      return event.payload.paused === true
+        ? 'Weekly review: kept paused'
+        : 'Weekly review: keep going';
     default: {
       // Keeps the switch exhaustive: a new event type fails typecheck until it gets a label.
       const unknown: never = event.type;

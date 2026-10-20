@@ -32,6 +32,7 @@ import {
   labUpdatePartInput,
   backupRestoreInput,
   backupUseFolderInput,
+  captureSaveInput,
   onboardingInput,
   openUrlInput,
   pauseInput,
@@ -42,14 +43,16 @@ import {
   updateSettingsInput,
   updateWorldInput,
 } from '../../shared/schemas';
-import type { AppSettings, ScanCandidate, ScanResult } from '../../shared/types';
+import type { AppSettings, CaptureStatus, ScanCandidate, ScanResult } from '../../shared/types';
 import { createLogger } from '../logging/logger';
 import { getBlueprint, listBlueprints } from '../services/blueprints';
 import type { GitRefresher } from '../services/git';
 import type { LabService } from '../services/lab';
 import type { MediaStore } from '../services/media';
 import type { BackupController } from '../backup-controller';
-import { openInEditor } from '../services/launcher';
+import { openInEditor, openTerminal } from '../services/launcher';
+import { pickUp } from '../services/pick-up';
+import { readWorkState } from '../services/work-state';
 import { UserError, type ProjectService } from '../services/projects';
 import { computerScanRoots, findGitRepos, scanFolder } from '../services/scanner';
 import { isAppUrl } from '../window';
@@ -66,6 +69,10 @@ export interface HandlerDeps {
   getWindow: () => BrowserWindow | null;
   /** Runs after settings change (e.g. re-registers the capture shortcut, re-checks auto-pause). */
   onSettingsChanged?: (settings: AppSettings, previous: AppSettings) => void;
+  /** The quick capture window and shortcut (see window.ts and capture-shortcut.ts). */
+  capture?: { hide: () => void; status: () => CaptureStatus };
+  /** Returns (and forgets) a project to show in a window that was just created for it. */
+  takePendingFocus?: () => string | null;
 }
 
 export function registerIpcHandlers({
@@ -76,6 +83,8 @@ export function registerIpcHandlers({
   git,
   getWindow,
   onSettingsChanged,
+  capture,
+  takePendingFocus,
 }: HandlerDeps): void {
   // Import is only allowed for folders the last scan actually found, so the renderer can't
   // smuggle in arbitrary paths.
@@ -125,9 +134,12 @@ export function registerIpcHandlers({
     await Promise.all([...before].map((id) => media.removeProject(id)));
     return left;
   });
-  handle(CHANNELS.projectsPause, pauseInput, ({ id, whereIStopped, nextStep }) =>
-    service.pause(id, whereIStopped, nextStep),
-  );
+  handle(CHANNELS.projectsPause, pauseInput, async ({ id, whereIStopped, nextStep, remindAt }) => {
+    // Main reads the Git state itself; the renderer only says what the user wrote.
+    const folder = service.summary(id).path;
+    const gitContext = folder ? await readWorkState(folder) : null;
+    return service.pause(id, whereIStopped, nextStep, { gitContext, remindAt: remindAt ?? null });
+  });
   handle(CHANNELS.projectsResume, idInput, ({ id }) => service.resume(id));
   handle(CHANNELS.projectsDetail, idInput, ({ id }) => service.detail(id));
   handle(CHANNELS.searchQuery, searchInput, ({ query }) => service.search(query));
@@ -334,11 +346,48 @@ export function registerIpcHandlers({
 
   // ---- Pause notes and reminders ----
 
+  handle(CHANNELS.projectsTakePendingFocus, emptyInput, () => takePendingFocus?.() ?? null);
+  handle(CHANNELS.projectsWorkState, idInput, async ({ id }) => {
+    const folder = service.summary(id).path;
+    return folder ? readWorkState(folder) : null;
+  });
+
   // ---- Pick up ----
+
+  handle(CHANNELS.projectsPickUp, idInput, ({ id }) =>
+    pickUp(id, {
+      service,
+      settings: () => service.bootstrap().settings,
+      openEditor: (dir) =>
+        openInEditor(dir, undefined, editorById(service.bootstrap().settings.editor).id),
+      openTerminal: (dir) => openTerminal(dir),
+      openUrl: (url) => shell.openExternal(url),
+    }),
+  );
 
   // ---- Quick capture ----
 
+  handle(CHANNELS.captureSave, captureSaveInput, async ({ projectId, text }) => {
+    await service.addNote(projectId, '', text, 'capture');
+    await service.updateSettings({ lastCaptureProjectId: projectId });
+    // The main window (if open) refreshes its grid and detail panel; the capture window
+    // reloads its own data each time it's shown.
+    getWindow()?.webContents.send(CHANNELS.projectsChanged, service.summaries());
+    capture?.hide();
+  });
+  handle(CHANNELS.captureClose, emptyInput, () => capture?.hide());
+  handle(CHANNELS.captureStatus, emptyInput, (): CaptureStatus => {
+    return capture?.status() ?? { shortcut: null, registered: false };
+  });
+
   // ---- Weekly review ----
+  handle(CHANNELS.reviewKeep, idInput, ({ id }) => service.reviewKeep(id));
+  handle(CHANNELS.reviewFinish, emptyInput, async () => {
+    const previous = service.bootstrap().settings;
+    const settings = await service.finishReview();
+    onSettingsChanged?.(settings, previous);
+    return settings;
+  });
 
   ipcMain.on(CHANNELS.logRendererError, (event, raw: unknown) => {
     if (!isTrustedSender(event)) return;

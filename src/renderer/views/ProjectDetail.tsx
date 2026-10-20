@@ -5,7 +5,12 @@ import { editorById } from '../../shared/editors';
 import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { addLinkInput, addNoteInput } from '../../shared/schemas';
 import { formatRelative } from '../../shared/time';
-import type { Entry, ProjectDetail as Detail, ProjectSummary } from '../../shared/types';
+import type {
+  AppSettings,
+  Entry,
+  ProjectDetail as Detail,
+  ProjectSummary,
+} from '../../shared/types';
 import { ResumeCard } from '../components/ResumeCard';
 import { Timeline } from '../components/Timeline';
 import { Button, Field, StatusBadge, WorldTag, inputClass } from '../components/ui';
@@ -91,6 +96,7 @@ function DetailBody({
   const { project, entries, events } = detail;
   const now = useHud((s) => s.now);
   const resumeProject = useHud((s) => s.resumeProject);
+  const pickUp = useHud((s) => s.pickUp);
   const showToast = useHud((s) => s.showToast);
   const archived = project.archivedAt !== null;
 
@@ -108,6 +114,15 @@ function DetailBody({
     }
   }, [resumeProject, showToast, project.id, headingRef]);
 
+  const onPickUp = useCallback(async () => {
+    try {
+      await pickUp(project.id);
+      headingRef.current?.focus();
+    } catch (err) {
+      showToast(errorMessage(err), 'error');
+    }
+  }, [pickUp, showToast, project.id, headingRef]);
+
   return (
     <div className="space-y-8">
       {project.status === 'paused' && project.activePause ? (
@@ -115,6 +130,7 @@ function DetailBody({
           pause={project.activePause}
           now={now}
           onResume={onResume}
+          onPickUp={project.path ? onPickUp : undefined}
           emphasize={emphasizeResume}
         />
       ) : null}
@@ -199,6 +215,10 @@ function Actions({ project }: { project: ProjectSummary }) {
   const archiveProject = useHud((s) => s.archiveProject);
   const restoreProject = useHud((s) => s.restoreProject);
   const openInEditor = useHud((s) => s.openInEditor);
+  const pickUp = useHud((s) => s.pickUp);
+  const pickUpHint = useHud((s) =>
+    pickUpDescription(s.settings, editorById(s.settings.editor).name),
+  );
   const revealInFinder = useHud((s) => s.revealInFinder);
   const showToast = useHud((s) => s.showToast);
   const enterLab = useHud((s) => s.enterLab);
@@ -240,12 +260,26 @@ function Actions({ project }: { project: ProjectSummary }) {
       </Button>
       {project.path ? (
         <>
+          {project.status === 'active' ? (
+            <Button title={pickUpHint} onClick={() => guard(() => pickUp(id))}>
+              Pick up
+            </Button>
+          ) : null}
           <Button onClick={() => guard(() => openInEditor(id))}>Open in {editorName}</Button>
           <Button onClick={() => guard(() => revealInFinder(id))}>Reveal in Finder</Button>
         </>
       ) : null}
     </div>
   );
+}
+
+/** Tooltip for Pick up, e.g. "Opens VS Code, a terminal and the 3 newest links". */
+function pickUpDescription(settings: AppSettings, editorName: string): string {
+  const parts = [editorName];
+  if (settings.pickUpTerminal) parts.push('a terminal');
+  if (settings.pickUpLinks) parts.push('the 3 newest links');
+  const last = parts.pop();
+  return `Opens ${parts.length > 0 ? `${parts.join(', ')} and ${last}` : last}`;
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {

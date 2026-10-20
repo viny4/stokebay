@@ -1,5 +1,5 @@
 import { AnimatePresence, MotionConfig } from 'framer-motion';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PauseDialog } from './components/PauseDialog';
@@ -9,6 +9,7 @@ import { SearchBox } from './components/SearchBox';
 import { SettingsDialog } from './components/SettingsDialog';
 import { Button } from './components/ui';
 import { subscribeToMain, useHud } from './store/useHud';
+import { reviewCandidates, reviewDue } from '../shared/review';
 import { ArchivedView } from './views/ArchivedView';
 import { HudGrid } from './views/HudGrid';
 import { Universe } from './views/Universe';
@@ -17,6 +18,7 @@ import { Lab } from './views/Lab';
 import { Onboarding } from './views/Onboarding';
 import type { View } from './store/useHud';
 import { ProjectDetail } from './views/ProjectDetail';
+import { WeeklyReview } from './views/WeeklyReview';
 
 export function App() {
   return (
@@ -145,6 +147,8 @@ function MainView({
         <Universe />
       ) : view === 'grid' ? (
         <HudGrid />
+      ) : view === 'review' ? (
+        <WeeklyReview />
       ) : (
         <ArchivedView />
       )}
@@ -160,13 +164,17 @@ function Sidebar() {
   const projects = useHud((s) => s.projects);
   const worldFilter = useHud((s) => s.worldFilter);
   const setWorldFilter = useHud((s) => s.setWorldFilter);
+  const now = useHud((s) => s.now);
+  const lastReviewAt = useHud((s) => s.settings.lastReviewAt);
 
   const live = projects.filter((p) => p.archivedAt === null);
+  const toReview = useMemo(() => reviewCandidates(projects, now), [projects, now]);
+  const reviewIsDue = reviewDue({ lastReviewAt }, toReview, now);
   const archivedCount = projects.length - live.length;
   // Worlds filter the grid; picking one from the map or archive goes back to the grid.
   const pickWorld = (id: string | null) => {
     setWorldFilter(id);
-    if (view === 'archived') setView('grid');
+    if (view === 'archived' || view === 'review') setView('grid');
   };
 
   return (
@@ -199,6 +207,21 @@ function Sidebar() {
         >
           Archived
         </NavItem>
+        <NavItem
+          active={view === 'review'}
+          count={toReview.length}
+          onClick={() => setView('review')}
+        >
+          Weekly review
+          {reviewIsDue ? (
+            <span
+              role="img"
+              aria-label="(due)"
+              title="Due"
+              className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
+            />
+          ) : null}
+        </NavItem>
       </nav>
 
       <p className="mt-6 mb-1 px-4 text-[11px] font-semibold text-muted">Areas</p>
@@ -206,7 +229,7 @@ function Sidebar() {
         {worlds.map((w) => (
           <NavItem
             key={w.id}
-            active={view !== 'archived' && worldFilter === w.id}
+            active={view !== 'archived' && view !== 'review' && worldFilter === w.id}
             count={live.filter((p) => p.worldIds.includes(w.id)).length}
             onClick={() => pickWorld(worldFilter === w.id ? null : w.id)}
           >
@@ -286,11 +309,13 @@ function Toolbar({ searchRef }: { searchRef: React.RefObject<HTMLInputElement | 
   const title =
     view === 'archived'
       ? 'Archived'
-      : view === 'universe'
-        ? world
-          ? `Map · ${world.name}`
-          : 'Map'
-        : (world?.name ?? 'All projects');
+      : view === 'review'
+        ? 'Weekly review'
+        : view === 'universe'
+          ? world
+            ? `Map · ${world.name}`
+            : 'Map'
+          : (world?.name ?? 'All projects');
 
   return (
     <header className="drag flex h-14 shrink-0 items-center gap-3 border-b border-line px-6">

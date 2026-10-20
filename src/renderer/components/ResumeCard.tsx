@@ -2,41 +2,54 @@ import { motion } from 'framer-motion';
 import { useEffect, useId, useRef, useState } from 'react';
 import { formatRelative } from '../../shared/time';
 import type { Pause } from '../../shared/types';
+import { formatReminder, gitContextFiles, gitContextLine } from './pause-note';
 import { Button } from './ui';
 
 /**
  * "Where I stopped / what's next": the reason the app exists. When it's the first thing the
  * user sees on opening a paused project it slides in gently and takes focus, so returning to
- * the project is one keypress.
+ * the project is one keypress. With a folder, that keypress is "Pick up": resume and open
+ * everything; "Resume" only changes the status.
  */
 export function ResumeCard({
   pause,
   now,
   onResume,
+  onPickUp,
   emphasize,
 }: {
   pause: Pause;
   now: number;
   onResume: () => Promise<void>;
+  /** Only for projects with a folder. */
+  onPickUp?: () => Promise<void>;
   emphasize: boolean;
 }) {
   // Button doesn't forward refs, so focus goes through its wrapper.
   const actionsRef = useRef<HTMLDivElement>(null);
   const headingId = useId();
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<'resume' | 'pickUp' | null>(null);
 
   useEffect(() => {
-    if (emphasize) actionsRef.current?.querySelector('button')?.focus();
+    if (!emphasize) return;
+    const actions = actionsRef.current;
+    (
+      actions?.querySelector<HTMLButtonElement>('[data-primary]') ??
+      actions?.querySelector('button')
+    )?.focus();
   }, [emphasize]);
 
-  const resume = async () => {
-    setBusy(true);
+  const run = async (kind: 'resume' | 'pickUp', action: () => Promise<void>) => {
+    setBusy(kind);
     try {
-      await onResume();
+      await action();
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
+
+  const context = pause.gitContext;
+  const files = context ? gitContextFiles(context) : null;
 
   return (
     <motion.section
@@ -63,10 +76,39 @@ export function ResumeCard({
         <ResumeLine label="Next step" value={pause.nextStep} />
       </dl>
 
-      <div ref={actionsRef} className="mt-3.5 flex justify-end">
-        <Button onClick={() => void resume()} disabled={busy}>
-          {busy ? 'Resuming…' : 'Resume'}
+      {context ? (
+        <p className="mt-3 text-xs leading-relaxed text-muted">
+          {gitContextLine(context)}
+          {files ? (
+            <span className="selectable block truncate" title={files}>
+              {files}
+            </span>
+          ) : null}
+        </p>
+      ) : null}
+
+      <div ref={actionsRef} className="mt-3.5 flex items-center justify-end gap-2">
+        {pause.remindAt !== null ? (
+          <p className="mr-auto text-xs text-muted">
+            Reminder{' '}
+            <time dateTime={new Date(pause.remindAt).toISOString()}>
+              {formatReminder(pause.remindAt)}
+            </time>
+          </p>
+        ) : null}
+        <Button onClick={() => void run('resume', onResume)} disabled={busy !== null}>
+          {busy === 'resume' ? 'Resuming…' : 'Resume'}
         </Button>
+        {onPickUp ? (
+          <Button
+            variant="primary"
+            data-primary
+            onClick={() => void run('pickUp', onPickUp)}
+            disabled={busy !== null}
+          >
+            {busy === 'pickUp' ? 'Opening…' : 'Pick up'}
+          </Button>
+        ) : null}
       </div>
     </motion.section>
   );

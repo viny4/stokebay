@@ -87,8 +87,10 @@ const api: HudApi = {
     ipcRenderer.on(CHANNELS.projectsFocus, wrapped);
     return () => ipcRenderer.removeListener(CHANNELS.projectsFocus, wrapped);
   },
+  takePendingFocus: () => invoke(CHANNELS.projectsTakePendingFocus),
   captureSave: (input) => invoke(CHANNELS.captureSave, input),
   captureClose: () => invoke(CHANNELS.captureClose),
+  captureStatus: () => invoke(CHANNELS.captureStatus),
   reviewKeep: (id) => invoke(CHANNELS.reviewKeep, { id }),
   reviewFinish: () => invoke(CHANNELS.reviewFinish),
 };

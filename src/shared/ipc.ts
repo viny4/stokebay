@@ -32,6 +32,7 @@ import type {
   BackupStatus,
   Blueprint,
   BootstrapData,
+  CaptureStatus,
   GitWorkState,
   Id,
   LabData,
@@ -109,12 +110,14 @@ export const CHANNELS = {
   projectsPickUp: 'projects:pickUp',
   captureSave: 'capture:save',
   captureClose: 'capture:close',
+  captureStatus: 'capture:status',
   reviewKeep: 'review:keep',
   reviewFinish: 'review:finish',
   /** Pushed from main when settings change outside a renderer request (e.g. a review finished). */
   settingsChanged: 'settings:changed',
   /** Pushed from main: open this project (e.g. a pause reminder notification was clicked). */
   projectsFocus: 'projects:focus',
+  projectsTakePendingFocus: 'projects:takePendingFocus',
 } as const;
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };
@@ -207,11 +210,15 @@ export interface HudApi {
   pickUp(id: Id): Promise<PickUpResult>;
   /** Main asks the window to open a project (e.g. a reminder notification was clicked). */
   onFocusProject(listener: (id: Id) => void): () => void;
+  /** A project main wanted shown before this window was ready to listen (asked once on start). */
+  takePendingFocus(): Promise<Id | null>;
 
   // The quick capture window.
   /** Saves the text as a note on the project and hides the capture window. */
   captureSave(input: CaptureSaveInput): Promise<void>;
   captureClose(): Promise<void>;
+  /** Whether the capture shortcut is registered (it fails when another app owns it). */
+  captureStatus(): Promise<CaptureStatus>;
 
   // Weekly review.
   /** "Keep going": counts as activity, so the project stops looking cold. */

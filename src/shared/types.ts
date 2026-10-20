@@ -265,6 +265,12 @@ export interface AppSettings {
   lastReviewAt: EpochMs | null;
 }
 
+/** Whether the quick capture shortcut is working (another app may already own it). */
+export interface CaptureStatus {
+  shortcut: string | null;
+  registered: boolean;
+}
+
 /** What "Pick up" did; `problems` lists anything that couldn't be opened. */
 export interface PickUpResult {
   project: ProjectSummary;

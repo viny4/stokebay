@@ -125,6 +125,15 @@ export class SqliteStore implements ProjectRepository {
     return row ? toPause(row) : undefined;
   }
 
+  listDueReminders(now: number): Pause[] {
+    // Uses the partial index on remind_at, so this stays cheap when run every few minutes.
+    return this.all(
+      `SELECT * FROM pauses WHERE remind_at IS NOT NULL AND remind_at <= ? AND resumed_at IS NULL
+       ORDER BY remind_at, rowid`,
+      now,
+    ).map(toPause);
+  }
+
   listEntries(projectId: Id): Entry[] {
     return this.all(
       'SELECT * FROM entries WHERE project_id = ? ORDER BY created_at DESC, id DESC',
@@ -635,6 +644,13 @@ export class SqliteStore implements ProjectRepository {
 
       closePause: (id, resumedAt) => {
         if (this.run('UPDATE pauses SET resumed_at = ? WHERE id = ?', resumedAt, id) === 0) {
+          throw new Error(`Pause ${id} not found`);
+        }
+        return toPause(this.get('SELECT * FROM pauses WHERE id = ?', id)!);
+      },
+
+      setPauseReminder: (id, remindAt) => {
+        if (this.run('UPDATE pauses SET remind_at = ? WHERE id = ?', remindAt, id) === 0) {
           throw new Error(`Pause ${id} not found`);
         }
         return toPause(this.get('SELECT * FROM pauses WHERE id = ?', id)!);

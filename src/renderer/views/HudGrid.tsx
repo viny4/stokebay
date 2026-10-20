@@ -1,20 +1,24 @@
 // The project grid: every visible project as a card, plus the sample banner and empty states.
 // Filtering lives in the store (worldFilter/search) so the toolbar can drive it.
 import { AnimatePresence, motion } from 'framer-motion';
-import { useDeferredValue, useMemo, useRef } from 'react';
+import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { visibleProjects } from '../../shared/filter';
+import { reviewCandidates, reviewDue } from '../../shared/review';
 import type { Id, World } from '../../shared/types';
 import { AreaOverview } from '../components/AreaOverview';
 import { ProjectCard } from '../components/ProjectCard';
 import { Button } from '../components/ui';
 import { useHud } from '../store/useHud';
 import { columnCount, nextIndex } from './grid-nav';
+import { startWeeklyReview } from './WeeklyReview';
 
 /** Cap the stagger so a big grid doesn't take seconds to finish appearing. */
 const STAGGER_S = 0.035;
 const MAX_STAGGERED = 12;
 /** Above this many cards, enter/exit/reflow animations cost more than they add: skip them. */
 const MAX_ANIMATED = 60;
+/** "Not now" on the review banner lasts until the app restarts, not forever. */
+let reviewBannerDismissed = false;
 
 export function HudGrid() {
   const projects = useHud((s) => s.projects);
@@ -55,6 +59,7 @@ export function HudGrid() {
   return (
     <div className="flex flex-col gap-4 p-6">
       {hasSamples ? <SampleBanner /> : null}
+      {search.trim() === '' ? <ReviewBanner /> : null}
       {area && search.trim() === '' ? <AreaOverview area={area} projects={areaProjects} /> : null}
 
       {live.length === 0 ? (
@@ -131,6 +136,42 @@ function SampleBanner() {
       >
         Remove samples
       </Button>
+    </div>
+  );
+}
+
+function ReviewBanner() {
+  const projects = useHud((s) => s.projects);
+  const now = useHud((s) => s.now);
+  const lastReviewAt = useHud((s) => s.settings.lastReviewAt);
+  const [dismissed, setDismissed] = useState(reviewBannerDismissed);
+  const candidates = useMemo(() => reviewCandidates(projects, now), [projects, now]);
+
+  if (dismissed || !reviewDue({ lastReviewAt }, candidates, now)) return null;
+  const n = candidates.length;
+  return (
+    <div
+      role="note"
+      className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface px-4 py-2.5 text-sm text-muted shadow-card"
+    >
+      <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+      <span>
+        {n === 1 ? "1 project hasn't" : `${n} projects haven't`} moved in a while. Weekly review
+        takes about two minutes.
+      </span>
+      <div className="ml-auto flex gap-2">
+        <Button
+          onClick={() => {
+            reviewBannerDismissed = true;
+            setDismissed(true);
+          }}
+        >
+          Not now
+        </Button>
+        <Button variant="primary" onClick={startWeeklyReview}>
+          Start
+        </Button>
+      </div>
     </div>
   );
 }

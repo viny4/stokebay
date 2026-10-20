@@ -1,4 +1,12 @@
-import { app, BrowserWindow, net, protocol, session } from 'electron';
+import {
+  app,
+  globalShortcut,
+  net,
+  Notification,
+  protocol,
+  session,
+  type BrowserWindow,
+} from 'electron';
 import started from 'electron-squirrel-startup';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -9,12 +17,15 @@ import { registerIpcHandlers } from './ipc/handlers';
 import { createLogger, enableFileLogging, setLogLevel } from './logging/logger';
 import { runDailyBackup } from './services/backup';
 import { GitRefresher } from './services/git';
+import { GitWatcher } from './services/git-watcher';
 import { LabService } from './services/lab';
 import { MediaStore } from './services/media';
 import { ProjectService } from './services/projects';
+import { startReminders } from './services/reminders';
 import { SqliteStore } from './store/sqlite-store';
 import { adoptLegacyData, LEGACY_FOLDER } from './store/legacy';
-import { createMainWindow } from './window';
+import { createMainWindow, hideCaptureWindow, toggleCaptureWindow } from './window';
+import { CaptureShortcut } from './capture-shortcut';
 
 const log = createLogger('main');
 
@@ -107,11 +118,13 @@ if (!app.requestSingleInstanceLock()) {
 
     const git = new GitRefresher({
       list: () => service.projectsWithFolders(),
-      save: (updates) => service.saveGitInfo(updates),
+      save: (updates, newCommits) => service.saveGitInfo(updates, newCommits),
       onChanged: () => mainWindow?.webContents.send(CHANNELS.projectsChanged, service.summaries()),
     });
     const media = new MediaStore(path.join(dataDir, 'media'));
     const lab = new LabService(store, service, media);
+    // A project to show once a window created for it is ready (see focusProject below).
+    let pendingFocus: string | null = null;
     // Features that react to settings changes add themselves here (capture shortcut, auto-pause).
     const settingsListeners: ((settings: AppSettings, previous: AppSettings) => void)[] = [];
     registerIpcHandlers({
@@ -123,13 +136,78 @@ if (!app.requestSingleInstanceLock()) {
       getWindow: () => mainWindow,
       onSettingsChanged: (settings, previous) =>
         settingsListeners.forEach((listener) => listener(settings, previous)),
+      // Only called once startup has finished, when captureShortcut (below) exists.
+      capture: { hide: hideCaptureWindow, status: () => captureShortcut.status() },
+      takePendingFocus: () => {
+        const id = pendingFocus;
+        pendingFocus = null;
+        return id;
+      },
     });
 
     // ---- Git tracking (commits, auto-pause) ----
+    // Commits reach the timeline through repo watchers; every run (focus, import, folder
+    // edit, the periodic fallback) re-syncs which repos are watched.
+    const gitWatcher = new GitWatcher({ refresh: (ids) => git.refresh({ force: true, ids }) });
+    git.afterEachRun(() => void gitWatcher.sync(service.projectsWithFolders()));
+    // Catches what watchers can't see: worktrees, submodules, repos past the watch cap.
+    setInterval(
+      () =>
+        void git
+          .refresh()
+          .catch((err: unknown) => log.warn('git refresh failed', { error: String(err) })),
+      10 * 60 * 1000,
+    ).unref();
+
+    const autoPause = async () => {
+      try {
+        const paused = await service.autoPause();
+        if (paused.length === 0) return;
+        log.info('projects paused automatically', { count: paused.length });
+        mainWindow?.webContents.send(CHANNELS.projectsChanged, service.summaries());
+      } catch (err) {
+        log.error('auto-pause failed', { error: String(err) });
+      }
+    };
+    // After the first Git read, so recent commits count as activity and nothing pauses early.
+    void git
+      .refresh()
+      .catch((err: unknown) => log.warn('git refresh failed', { error: String(err) }))
+      .then(autoPause);
+    setInterval(() => void autoPause(), 6 * 60 * 60 * 1000).unref();
+    settingsListeners.push((settings, previous) => {
+      if (settings.autoPauseDays !== previous.autoPauseDays) void autoPause();
+    });
+    app.on('will-quit', () => void gitWatcher.close());
 
     // ---- Pause reminders ----
+    // A clicked reminder brings the app forward on that project. A window created just now
+    // can't listen yet, so it asks for the project itself once it has started.
+    const focusProject = (projectId: string) => {
+      if (!mainWindow) {
+        pendingFocus = projectId;
+        openWindow?.();
+        return;
+      }
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+      mainWindow.webContents.send(CHANNELS.projectsFocus, projectId);
+    };
+    startReminders({ repo: store, Notification, onOpen: focusProject });
 
     // ---- Quick capture ----
+    // The shortcut works from any app, and also while the main window is closed (macOS keeps
+    // the app running), because saving never goes through the main window.
+    const captureShortcut = new CaptureShortcut(
+      globalShortcut,
+      toggleCaptureWindow,
+      (accelerator, reason) =>
+        log.warn('quick capture shortcut not registered', { accelerator, reason }),
+    );
+    captureShortcut.apply(service.bootstrap().settings.captureShortcut);
+    settingsListeners.push((settings) => void captureShortcut.apply(settings.captureShortcut));
+    app.on('will-quit', () => globalShortcut.unregisterAll());
 
     protocol.handle('hud-media', async (request) => {
       const url = new URL(request.url);
@@ -152,13 +230,18 @@ if (!app.requestSingleInstanceLock()) {
       });
       win.on('closed', () => {
         if (mainWindow === win) mainWindow = null;
+        // The hidden capture window still counts as a window, so 'window-all-closed' (below)
+        // never fires once it exists; quit here in the same cases.
+        if (process.platform !== 'darwin' || !app.isPackaged) app.quit();
       });
       mainWindow = win;
     };
     openWindow();
 
+    // Clicking the Dock icon reopens the main window. Checked by the main window itself, as the
+    // hidden capture window would otherwise make it look like a window is still open.
     app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) openWindow?.();
+      if (!mainWindow) openWindow?.();
     });
     app.on('will-quit', () => store.close());
   };

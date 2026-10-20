@@ -25,7 +25,7 @@ import type {
   World,
 } from '../../shared/types';
 
-export type View = 'grid' | 'archived' | 'lab' | 'universe';
+export type View = 'grid' | 'archived' | 'lab' | 'universe' | 'review';
 
 export type DialogState =
   | { kind: 'none' }
@@ -109,6 +109,8 @@ export interface HudState {
   removeSampleProjects(): Promise<void>;
   pauseProject(input: PauseInput): Promise<void>;
   resumeProject(id: Id): Promise<void>;
+  /** Resumes if paused and opens the editor (plus terminal/links per settings). */
+  pickUp(id: Id): Promise<void>;
   addNote(input: AddNoteInput): Promise<void>;
   addLink(input: AddLinkInput): Promise<void>;
   openLink(entryId: Id): Promise<void>;
@@ -120,6 +122,10 @@ export interface HudState {
   importScanned(input: ScanImportInput): Promise<ProjectSummary[]>;
   openInEditor(id: Id): Promise<void>;
   revealInFinder(id: Id): Promise<void>;
+  /** Weekly review "keep going" (counts as activity, so the project stops looking cold). */
+  reviewKeep(id: Id): Promise<void>;
+  /** Records that the weekly review is done; it's offered again in a week. */
+  finishReview(): Promise<void>;
 }
 
 export function errorMessage(err: unknown): string {
@@ -312,6 +318,12 @@ export const useHud = create<HudState>()((set, get) => {
     async resumeProject(id) {
       await upsert(await window.api.resumeProject(id));
     },
+    async pickUp(id) {
+      const { project, problems } = await window.api.pickUp(id);
+      await upsert(project);
+      // The project is resumed either way; only say what didn't open.
+      if (problems.length > 0) get().showToast(problems.join(' '), 'error');
+    },
     async addNote(input) {
       const detail = await window.api.addNote(input);
       set((s) => ({
@@ -350,6 +362,12 @@ export const useHud = create<HudState>()((set, get) => {
       await upsert((await window.api.getProjectDetail(id)).project);
     },
     revealInFinder: (id) => window.api.revealInFinder(id),
+    async reviewKeep(id) {
+      await upsert(await window.api.reviewKeep(id));
+    },
+    async finishReview() {
+      set({ settings: await window.api.reviewFinish() });
+    },
   };
 });
 
@@ -379,6 +397,13 @@ export function subscribeToMain(): () => void {
         .catch(() => undefined);
     }
   });
+  // Opened by a reminder while no window existed: main kept the project for us.
+  window.api
+    .takePendingFocus()
+    .then((id) => {
+      if (id) guard(() => useHud.getState().openProject(id));
+    })
+    .catch(() => undefined);
   return () => {
     offSettings();
     offFocus();

@@ -11,16 +11,16 @@ export const CODE_NOT_FOUND_MESSAGE =
 
 export interface LauncherDeps {
   /** Starts a program and resolves once it has launched (rejects with ENOENT if missing). */
-  spawnDetached: (command: string, args: string[]) => Promise<void>;
+  spawnDetached: (command: string, args: string[], options?: { cwd?: string }) => Promise<void>;
   /** Runs a program to completion; rejects on a non-zero exit. */
   run: (command: string, args: string[]) => Promise<void>;
   platform: NodeJS.Platform;
 }
 
 const defaultDeps: LauncherDeps = {
-  spawnDetached: (command, args) =>
+  spawnDetached: (command, args, options) =>
     new Promise((resolve, reject) => {
-      const child = spawn(command, args, { detached: true, stdio: 'ignore' });
+      const child = spawn(command, args, { detached: true, stdio: 'ignore', cwd: options?.cwd });
       child.once('error', reject);
       child.once('spawn', () => {
         child.unref();
@@ -69,4 +69,43 @@ export async function openInEditor(
         ? CODE_NOT_FOUND_MESSAGE
         : `Couldn't open ${editor.name}. Is it installed? You can pick another editor in Settings.`,
   };
+}
+
+export const TERMINAL_NOT_FOUND_MESSAGE = "Couldn't open a terminal in the project folder.";
+
+/**
+ * Opens a terminal window in `dir`. Each platform has its own default terminal, so try the usual
+ * one first and fall back; the folder always goes in as its own argument (or as the working
+ * directory), never inside a shell string.
+ */
+export async function openTerminal(
+  dir: string,
+  deps: LauncherDeps = defaultDeps,
+): Promise<LaunchResult> {
+  const attempts: (() => Promise<void>)[] =
+    deps.platform === 'darwin'
+      ? [() => deps.run('open', ['-a', 'Terminal', dir])]
+      : deps.platform === 'win32'
+        ? [
+            // Windows Terminal when installed, otherwise a plain Command Prompt in the folder.
+            () => deps.spawnDetached('wt', ['-d', dir]),
+            () => deps.spawnDetached('cmd.exe', ['/K'], { cwd: dir }),
+          ]
+        : [
+            // Debian-style systems point this at the user's chosen terminal.
+            () => deps.spawnDetached('x-terminal-emulator', [], { cwd: dir }),
+            () => deps.spawnDetached('gnome-terminal', [`--working-directory=${dir}`]),
+            () => deps.spawnDetached('konsole', ['--workdir', dir]),
+          ];
+  for (const attempt of attempts) {
+    try {
+      await attempt();
+      return { ok: true, message: null };
+    } catch (err) {
+      log.debug('terminal command failed', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+  return { ok: false, message: TERMINAL_NOT_FOUND_MESSAGE };
 }

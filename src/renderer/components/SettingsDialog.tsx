@@ -3,7 +3,10 @@ import { useEffect, useState } from 'react';
 import { formatRelative } from '../../shared/time';
 import type { BackupStatus } from '../../shared/types';
 import { errorMessage, useHud } from '../store/useHud';
+import { CaptureSettings } from './settings/CaptureSettings';
 import { DataSettings, EditorSettings, WorldsSettings } from './settings/GeneralSettings';
+import { PickUpSettings } from './settings/PickUpSettings';
+import { TrackingSettings } from './settings/TrackingSettings';
 import { Button, Dialog } from './ui';
 
 export function SettingsDialog() {
@@ -58,6 +61,9 @@ export function SettingsDialog() {
       <div className="flex flex-col divide-y divide-line [&>section]:py-6 [&>section:first-child]:pt-1 [&>section:last-child]:pb-1">
         <WorldsSettings />
         <EditorSettings />
+        <PickUpSettings />
+        <TrackingSettings />
+        <CaptureSettings />
         <DataSettings />
         <section aria-labelledby="settings-backups" className="flex flex-col gap-3">
           <div>

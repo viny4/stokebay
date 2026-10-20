@@ -115,6 +115,12 @@ export class JsonStore implements ProjectRepository {
     return this.data.pauses.find((p) => p.projectId === projectId && p.resumedAt === null);
   }
 
+  listDueReminders(now: number): Pause[] {
+    return this.data.pauses
+      .filter((p) => p.resumedAt === null && p.remindAt !== null && p.remindAt <= now)
+      .sort((a, b) => (a.remindAt ?? 0) - (b.remindAt ?? 0));
+  }
+
   listEntries(projectId: Id): Entry[] {
     return newestFirst(this.data.entries.filter((e) => e.projectId === projectId));
   }
@@ -366,6 +372,13 @@ export class JsonStore implements ProjectRepository {
         const pause = this.data.pauses.find((p) => p.id === id);
         if (!pause) throw new Error(`Pause ${id} not found`);
         pause.resumedAt = resumedAt;
+        return pause;
+      },
+
+      setPauseReminder: (id, remindAt) => {
+        const pause = this.data.pauses.find((p) => p.id === id);
+        if (!pause) throw new Error(`Pause ${id} not found`);
+        pause.remindAt = remindAt;
         return pause;
       },
 

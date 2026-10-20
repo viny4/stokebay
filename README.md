@@ -22,19 +22,26 @@ It runs on your computer, works offline, needs no account and is free.
 ## What it does
 
 - **All your projects, any kind.** Software, hardware, music, writing, learning. Group them
-  into worlds you choose.
+  into areas you choose.
 - **Pick up where you left off.** Pausing a project asks two questions: where did you stop, and
-  what's next. Next time you open it, that's the first thing you see.
-- **Notices what's gone cold.** Projects you haven't touched in a while fade, with a gentle
-  prompt to pause them properly.
+  what's next. For code projects the note is pre-filled from Git (branch, uncommitted files,
+  last commit), and you can ask to be reminded in a few days. Next time, **Pick up** resumes
+  it and opens your editor and a terminal in one click.
+- **Quick capture from anywhere.** Press ⌘⇧Space in any app, type a thought, pick the project,
+  press Enter. It's saved as a note.
+- **Keeps itself up to date.** New commits appear on the project's timeline by themselves.
+  Projects you haven't touched for 30 days (you choose) pause themselves, so the list shows what
+  you're really working on.
+- **Weekly review.** Once a week, a two-minute walk through the projects going cold: keep
+  going, pause with a note, mark done, or let it go.
 - **A Lab for each project.** A whiteboard for notes, checklists, links, images and files,
   arranged in zones.
 - **Parts Bin.** For physical builds: what to buy, what it costs, what has arrived.
 - **Map.** Every project as a dot around you: the closer to the middle, the more recently you
   worked on it.
-- **Finds your code.** Point it at a folder and it picks up your Git projects, with the branch
-  and last commit on each card, and opens them in your editor (VS Code, Cursor, Zed, Windsurf
-  or Sublime Text).
+- **Finds your code.** Searches your computer for Git projects, with the branch and last commit
+  on each card, and opens them in your editor (VS Code, Cursor, Zed, Windsurf or Sublime Text).
+- **Full-text search.** Finds words inside your notes, links and Lab items, not just titles.
 - **Backups you control.** A copy every day on your computer, plus an optional daily copy into
   any folder, such as Google Drive or Dropbox, with one-click restore.
 

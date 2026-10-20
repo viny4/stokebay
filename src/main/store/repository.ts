@@ -94,6 +94,8 @@ export interface ProjectRepository {
   listProjects(): Project[];
   getProject(id: Id): Project | undefined;
   activePause(projectId: Id): Pause | undefined;
+  /** Open pauses whose reminder time is at or before `now`, earliest reminder first. */
+  listDueReminders(now: EpochMs): Pause[];
   /** Newest first. */
   listEntries(projectId: Id): Entry[];
   getEntry(id: Id): Entry | undefined;
@@ -143,6 +145,8 @@ export interface RepositoryTx {
       Partial<Pick<Pause, 'gitContext' | 'remindAt'>>,
   ): Pause;
   closePause(id: Id, resumedAt: EpochMs): Pause;
+  /** Sets or clears (null) a pause's reminder; cleared once it has been shown. */
+  setPauseReminder(id: Id, remindAt: EpochMs | null): Pause;
   addEntry(input: NewEntry): Entry;
   updateEntry(id: Id, changes: EntryChanges): Entry;
   deleteEntry(id: Id): void;

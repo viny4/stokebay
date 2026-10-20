@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { CaptureApp } from './capture/CaptureApp';
 import './index.css';
 
 // Forward renderer crashes to the main process log so they're visible in the terminal.
@@ -23,8 +24,9 @@ window.addEventListener('unhandledrejection', (event) => {
 const container = document.getElementById('root');
 if (!container) throw new Error('Missing #root element');
 
-createRoot(container).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+// The quick capture window loads this same page with #capture (see main/window.ts).
+const isCapture = window.location.hash === '#capture';
+// The capture window is one raised panel, not the app's canvas.
+if (isCapture) document.body.style.backgroundColor = 'var(--raised)';
+
+createRoot(container).render(<StrictMode>{isCapture ? <CaptureApp /> : <App />}</StrictMode>);

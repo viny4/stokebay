@@ -4,7 +4,9 @@ import type { ProjectPatch } from '../../shared/schemas';
 import type {
   AppSettings,
   BootstrapData,
+  EpochMs,
   GitInfo,
+  GitWorkState,
   Id,
   Project,
   ProjectDetail,
@@ -218,13 +220,25 @@ export class ProjectService {
     return this.summaries();
   }
 
-  async pause(id: Id, whereIStopped: string, nextStep: string): Promise<ProjectSummary> {
+  async pause(
+    id: Id,
+    whereIStopped: string,
+    nextStep: string,
+    options: { gitContext?: GitWorkState | null; remindAt?: EpochMs | null } = {},
+  ): Promise<ProjectSummary> {
     const current = this.require(id);
     if (current.archivedAt !== null) throw new UserError('Restore this project before pausing it.');
     if (current.status !== 'active') throw new UserError('Only active projects can be paused.');
     const now = this.clock();
     const project = await this.repo.transaction((tx) => {
-      const pause = tx.addPause({ projectId: id, pausedAt: now, whereIStopped, nextStep });
+      const pause = tx.addPause({
+        projectId: id,
+        pausedAt: now,
+        whereIStopped,
+        nextStep,
+        gitContext: options.gitContext ?? null,
+        remindAt: options.remindAt ?? null,
+      });
       const p = tx.updateProject(id, { status: 'paused' }, now);
       recordEvent(tx, 'project_paused', id, now, { pauseId: pause.id });
       return p;
@@ -246,7 +260,13 @@ export class ProjectService {
     return this.toSummary(project);
   }
 
-  async addNote(projectId: Id, title: string, body: string): Promise<ProjectDetail> {
+  /** `source` marks notes that came from somewhere other than the project panel (quick capture). */
+  async addNote(
+    projectId: Id,
+    title: string,
+    body: string,
+    source?: 'capture',
+  ): Promise<ProjectDetail> {
     this.requireEditable(projectId);
     const now = this.clock();
     await this.repo.transaction((tx) => {
@@ -258,7 +278,10 @@ export class ProjectService {
         url: null,
         createdAt: now,
       });
-      recordEvent(tx, 'note_added', projectId, now, { entryId: entry.id });
+      recordEvent(tx, 'note_added', projectId, now, {
+        entryId: entry.id,
+        ...(source ? { source } : {}),
+      });
     });
     return this.detail(projectId);
   }
@@ -326,6 +349,27 @@ export class ProjectService {
     return path;
   }
 
+  /**
+   * Weekly review "keep going": the event counts as activity, so the project stops looking
+   * cold and isn't asked about again until it has been quiet for a while.
+   */
+  async reviewKeep(id: Id): Promise<ProjectSummary> {
+    const project = this.requireEditable(id);
+    const now = this.clock();
+    await this.repo.transaction((tx) => {
+      recordEvent(tx, 'project_reviewed', id, now, {
+        choice: 'keep',
+        paused: project.status === 'paused',
+      });
+    });
+    return this.summary(id);
+  }
+
+  /** Marks the weekly review as finished; it's offered again a week later. */
+  async finishReview(): Promise<AppSettings> {
+    return this.updateSettings({ lastReviewAt: this.clock() });
+  }
+
   async recordOpenedInEditor(id: Id): Promise<void> {
     const now = this.clock();
     await this.repo.transaction((tx) => recordEvent(tx, 'opened_in_editor', id, now));
@@ -354,15 +398,71 @@ export class ProjectService {
     return created.map((p) => this.toSummary(p));
   }
 
-  /** Stores refreshed Git info; returns true if anything changed. */
-  async saveGitInfo(updates: Map<Id, GitInfo | null>): Promise<boolean> {
-    const changed = [...updates].filter(([id, git]) => {
+  /**
+   * Stores refreshed Git info; returns true if anything changed. A last commit that moved
+   * forward is recorded as `commit_detected` with `newCommits`' count (at least 1). The first
+   * read of a repo (nothing cached yet) and a move backwards (branch switch) record nothing.
+   */
+  async saveGitInfo(
+    updates: Map<Id, GitInfo | null>,
+    newCommits: ReadonlyMap<Id, number> = new Map(),
+  ): Promise<boolean> {
+    const changed = [...updates].flatMap(([id, git]) => {
       const project = this.repo.getProject(id);
-      return project !== undefined && !sameGit(project.git, git);
+      return project !== undefined && !sameGit(project.git, git)
+        ? [{ id, git, before: project.git?.lastCommitAt ?? null }]
+        : [];
     });
     if (changed.length === 0) return false;
-    await this.repo.transaction((tx) => changed.forEach(([id, git]) => tx.setGitInfo(id, git)));
+    const now = this.clock();
+    await this.repo.transaction((tx) =>
+      changed.forEach(({ id, git, before }) => {
+        tx.setGitInfo(id, git);
+        const at = git?.lastCommitAt ?? null;
+        if (before === null || at === null || at <= before || git?.error) return;
+        const count = Math.max(1, Math.floor(newCommits.get(id) ?? 1));
+        // Dated by the commit so the timeline reads in order; a clock running ahead can't
+        // put it in the future.
+        recordEvent(tx, 'commit_detected', id, Math.min(at, now), { count });
+      }),
+    );
     return true;
+  }
+
+  /**
+   * Pauses active projects nobody has touched for `autoPauseDays` (0 = off), so the grid shows
+   * what's really in progress. Sample projects are left alone: they exist to show each state.
+   * Returns the ids it paused.
+   */
+  async autoPause(): Promise<Id[]> {
+    const days = this.repo.getSettings().autoPauseDays;
+    if (!(days > 0)) return [];
+    const now = this.clock();
+    const cutoff = now - days * DAY_MS;
+    const cold = this.repo
+      .listProjects()
+      .filter(
+        (p) =>
+          p.archivedAt === null &&
+          p.status === 'active' &&
+          !p.isSample &&
+          this.toSummary(p).lastActivityAt < cutoff,
+      );
+    if (cold.length === 0) return [];
+    await this.repo.transaction((tx) =>
+      cold.forEach((p) => {
+        const pause = tx.addPause({
+          projectId: p.id,
+          pausedAt: now,
+          whereIStopped: autoPauseNote(days, p.git),
+          nextStep: '',
+          gitContext: null,
+        });
+        tx.updateProject(p.id, { status: 'paused' }, now);
+        recordEvent(tx, 'project_paused', p.id, now, { pauseId: pause.id, auto: true, days });
+      }),
+    );
+    return cold.map((p) => p.id);
   }
 
   private toSummary(project: Project): ProjectSummary {
@@ -394,6 +494,16 @@ export class ProjectService {
 
 function sameSet(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((x) => b.includes(x));
+}
+
+/** The "where I stopped" text of an automatic pause: why, plus what Git last showed. */
+function autoPauseNote(days: number, git: GitInfo | null): string {
+  const why = `Paused automatically after ${days} days without activity.`;
+  if (!git?.lastCommitMsg) return why;
+  const msg = git.lastCommitMsg;
+  const subject = msg.length > 200 ? `${msg.slice(0, 199)}…` : msg;
+  const onBranch = git.branch && !git.branch.startsWith('detached') ? ` on ${git.branch}` : '';
+  return `${why} Last commit${onBranch}: ${subject}`;
 }
 
 /** Equal apart from refresh time, so an unchanged repo doesn't cost a save. */
