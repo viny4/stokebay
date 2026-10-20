@@ -133,4 +133,40 @@ describe('openTerminal', () => {
     });
     expect(calls.map((c) => c.cmd)).toEqual(['x-terminal-emulator', 'gnome-terminal', 'konsole']);
   });
+
+  it('opens a chosen terminal app on macOS the way each one expects', async () => {
+    const dir = '/my projects/robot';
+    const argsFor = async (id: Parameters<typeof openTerminal>[2]) => {
+      const { calls, deps: d } = fake('darwin', ['open']);
+      await openTerminal(dir, d, id);
+      return calls[0].args;
+    };
+    expect(await argsFor('iterm')).toEqual(['-a', 'iTerm', dir]);
+    expect(await argsFor('warp')).toEqual(['-a', 'Warp', dir]);
+    expect(await argsFor('ghostty')).toEqual([
+      '-na',
+      'Ghostty',
+      '--args',
+      `--working-directory=${dir}`,
+    ]);
+    expect(await argsFor('kitty')).toEqual(['-na', 'kitty', '--args', '--directory', dir]);
+    expect(await argsFor('wezterm')).toEqual(['-na', 'WezTerm', '--args', 'start', '--cwd', dir]);
+  });
+
+  it('names the missing app instead of quietly opening another', async () => {
+    const { calls, deps: d } = fake('darwin', []);
+    const result = await openTerminal('/p', d, 'warp');
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/Couldn't open Warp/);
+    expect(calls).toHaveLength(1);
+  });
+
+  it('uses the command elsewhere, and offers no iTerm off macOS', async () => {
+    const { calls, deps: d } = fake('linux', ['alacritty']);
+    expect((await openTerminal('/home/me/app', d, 'alacritty')).ok).toBe(true);
+    expect(calls).toEqual([
+      { cmd: 'alacritty', args: ['--working-directory', '/home/me/app'], cwd: '/home/me/app' },
+    ]);
+    expect((await openTerminal('/home/me/app', fake('linux', []).deps, 'iterm')).ok).toBe(false);
+  });
 });

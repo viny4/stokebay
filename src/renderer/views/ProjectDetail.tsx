@@ -2,6 +2,8 @@
 // stays usable: clicking another card just swaps the panel (App keys it by project id).
 import { motion } from 'framer-motion';
 import { editorById } from '../../shared/editors';
+import { terminalById, usesBuiltInTerminal } from '../../shared/terminals';
+import { openProjectTerminal, pickUpProject, useTerminals } from '../store/useTerminals';
 import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { addLinkInput, addNoteInput } from '../../shared/schemas';
 import { formatRelative } from '../../shared/time';
@@ -26,6 +28,7 @@ export function ProjectDetail() {
   // The resume card only gets its entrance and focus when the panel *opens* on a paused project.
   // Pausing again from inside the panel shouldn't steal focus, so this is decided once, from
   // the first detail that arrives (setState during render is React's derived-state pattern).
+  const terminalOffset = useTerminals((s) => (s.open && s.tabs.length > 0 ? s.width : 0));
   const ready = detail !== null && detail.project.id === selectedId;
   const [openedPaused, setOpenedPaused] = useState<boolean | null>(null);
   if (ready && openedPaused === null) setOpenedPaused(detail.project.status === 'paused');
@@ -33,6 +36,8 @@ export function ProjectDetail() {
   return (
     <motion.aside
       aria-labelledby={headingId}
+      // With the terminal open, the panel slides out beside it instead of covering it.
+      style={{ right: terminalOffset }}
       className="fixed top-0 right-0 z-40 flex h-full w-[480px] max-w-full flex-col border-l border-line bg-raised shadow-pop"
       initial={{ x: '100%', opacity: 0.6 }}
       animate={{ x: 0, opacity: 1 }}
@@ -96,7 +101,7 @@ function DetailBody({
   const { project, entries, events } = detail;
   const now = useHud((s) => s.now);
   const resumeProject = useHud((s) => s.resumeProject);
-  const pickUp = useHud((s) => s.pickUp);
+  const pickUp = pickUpProject;
   const showToast = useHud((s) => s.showToast);
   const archived = project.archivedAt !== null;
 
@@ -215,10 +220,13 @@ function Actions({ project }: { project: ProjectSummary }) {
   const archiveProject = useHud((s) => s.archiveProject);
   const restoreProject = useHud((s) => s.restoreProject);
   const openInEditor = useHud((s) => s.openInEditor);
-  const pickUp = useHud((s) => s.pickUp);
+  const pickUp = pickUpProject;
   const pickUpHint = useHud((s) =>
-    pickUpDescription(s.settings, editorById(s.settings.editor).name),
+    pickUpDescription(s.settings, editorById(s.settings.editor).name, terminalLabel(s.settings)),
   );
+  const builtInTerminal = useHud((s) => usesBuiltInTerminal(s.settings.terminal));
+  const terminalApp = useHud((s) => terminalById(s.settings.terminal).name);
+
   const revealInFinder = useHud((s) => s.revealInFinder);
   const showToast = useHud((s) => s.showToast);
   const enterLab = useHud((s) => s.enterLab);
@@ -266,6 +274,9 @@ function Actions({ project }: { project: ProjectSummary }) {
             </Button>
           ) : null}
           <Button onClick={() => guard(() => openInEditor(id))}>Open in {editorName}</Button>
+          <Button onClick={() => openProjectTerminal(id)}>
+            {builtInTerminal ? 'Terminal' : `Open in ${terminalApp}`}
+          </Button>
           <Button onClick={() => guard(() => revealInFinder(id))}>Reveal in Finder</Button>
         </>
       ) : null}
@@ -273,10 +284,21 @@ function Actions({ project }: { project: ProjectSummary }) {
   );
 }
 
-/** Tooltip for Pick up, e.g. "Opens VS Code, a terminal and the 3 newest links". */
-function pickUpDescription(settings: AppSettings, editorName: string): string {
+/** How Pick up's tooltip names the terminal: the built-in one, or the chosen app. */
+function terminalLabel(settings: AppSettings): string {
+  return usesBuiltInTerminal(settings.terminal)
+    ? 'a terminal'
+    : terminalById(settings.terminal).name;
+}
+
+/** Tooltip for Pick up, e.g. "Opens VS Code, Warp and the 3 newest links". */
+function pickUpDescription(
+  settings: AppSettings,
+  editorName: string,
+  terminalName: string,
+): string {
   const parts = [editorName];
-  if (settings.pickUpTerminal) parts.push('a terminal');
+  if (settings.pickUpTerminal) parts.push(terminalName);
   if (settings.pickUpLinks) parts.push('the 3 newest links');
   const last = parts.pop();
   return `Opens ${parts.length > 0 ? `${parts.join(', ')} and ${last}` : last}`;

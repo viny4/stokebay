@@ -1,5 +1,6 @@
 import { execFile, spawn } from 'node:child_process';
 import { editorById, type EditorId } from '../../shared/editors';
+import { terminalById, type Terminal, type TerminalId } from '../../shared/terminals';
 import type { LaunchResult } from '../../shared/types';
 import { createLogger } from '../logging/logger';
 
@@ -74,29 +75,33 @@ export async function openInEditor(
 export const TERMINAL_NOT_FOUND_MESSAGE = "Couldn't open a terminal in the project folder.";
 
 /**
- * Opens a terminal window in `dir`. Each platform has its own default terminal, so try the usual
- * one first and fall back; the folder always goes in as its own argument (or as the working
- * directory), never inside a shell string.
+ * How each named terminal is told which folder to start in. On macOS these go through
+ * `open -na <App> --args …`, the way their docs recommend for starting a new window.
+ */
+const TERMINAL_DIR_ARGS: Record<
+  Exclude<TerminalId, 'default' | 'iterm' | 'warp'>,
+  (dir: string) => string[]
+> = {
+  ghostty: (dir) => [`--working-directory=${dir}`],
+  kitty: (dir) => ['--directory', dir],
+  alacritty: (dir) => ['--working-directory', dir],
+  wezterm: (dir) => ['start', '--cwd', dir],
+};
+
+/**
+ * Opens a terminal window in `dir`: the chosen one, or the system's own when it's `default`.
+ * The folder always goes in as its own argument (or as the working directory), never inside a
+ * shell string. A missing chosen terminal is reported rather than swapped for another one, so
+ * the user knows to change it in Settings.
  */
 export async function openTerminal(
   dir: string,
   deps: LauncherDeps = defaultDeps,
+  terminalId: TerminalId = 'default',
 ): Promise<LaunchResult> {
+  const terminal = terminalById(terminalId);
   const attempts: (() => Promise<void>)[] =
-    deps.platform === 'darwin'
-      ? [() => deps.run('open', ['-a', 'Terminal', dir])]
-      : deps.platform === 'win32'
-        ? [
-            // Windows Terminal when installed, otherwise a plain Command Prompt in the folder.
-            () => deps.spawnDetached('wt', ['-d', dir]),
-            () => deps.spawnDetached('cmd.exe', ['/K'], { cwd: dir }),
-          ]
-        : [
-            // Debian-style systems point this at the user's chosen terminal.
-            () => deps.spawnDetached('x-terminal-emulator', [], { cwd: dir }),
-            () => deps.spawnDetached('gnome-terminal', [`--working-directory=${dir}`]),
-            () => deps.spawnDetached('konsole', ['--workdir', dir]),
-          ];
+    terminal.id === 'default' ? systemTerminal(dir, deps) : namedTerminal(terminal, dir, deps);
   for (const attempt of attempts) {
     try {
       await attempt();
@@ -107,5 +112,51 @@ export async function openTerminal(
       });
     }
   }
-  return { ok: false, message: TERMINAL_NOT_FOUND_MESSAGE };
+  return {
+    ok: false,
+    message:
+      terminal.id === 'default'
+        ? TERMINAL_NOT_FOUND_MESSAGE
+        : `Couldn't open ${terminal.name}. Is it installed? You can pick another terminal in Settings.`,
+  };
+}
+
+function systemTerminal(dir: string, deps: LauncherDeps): (() => Promise<void>)[] {
+  if (deps.platform === 'darwin') return [() => deps.run('open', ['-a', 'Terminal', dir])];
+  if (deps.platform === 'win32') {
+    return [
+      // Windows Terminal when installed, otherwise a plain Command Prompt in the folder.
+      () => deps.spawnDetached('wt', ['-d', dir]),
+      () => deps.spawnDetached('cmd.exe', ['/K'], { cwd: dir }),
+    ];
+  }
+  return [
+    // Debian-style systems point this at the user's chosen terminal.
+    () => deps.spawnDetached('x-terminal-emulator', [], { cwd: dir }),
+    () => deps.spawnDetached('gnome-terminal', [`--working-directory=${dir}`]),
+    () => deps.spawnDetached('konsole', ['--workdir', dir]),
+  ];
+}
+
+function namedTerminal(
+  terminal: Terminal,
+  dir: string,
+  deps: LauncherDeps,
+): (() => Promise<void>)[] {
+  if (terminal.id === 'default') return systemTerminal(dir, deps);
+  if (deps.platform === 'darwin') {
+    // iTerm and Warp open a folder handed to them like a document.
+    if (terminal.id === 'iterm' || terminal.id === 'warp') {
+      return [() => deps.run('open', ['-a', terminal.app, dir])];
+    }
+    return [
+      () =>
+        deps.run('open', ['-na', terminal.app, '--args', ...TERMINAL_DIR_ARGS[terminal.id](dir)]),
+    ];
+  }
+  // iTerm has no command outside macOS; Warp's starts in its working directory.
+  if (terminal.id === 'iterm') return [];
+  if (terminal.id === 'warp') return [() => deps.spawnDetached(terminal.cli, [], { cwd: dir })];
+  const args = TERMINAL_DIR_ARGS[terminal.id](dir);
+  return [() => deps.spawnDetached(terminal.cli, args, { cwd: dir })];
 }

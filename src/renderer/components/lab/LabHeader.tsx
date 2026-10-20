@@ -3,6 +3,7 @@
 // macOS traffic lights on the left.
 import { useEffect, useId, useRef, useState, type FormEvent, type RefObject } from 'react';
 import type { ProjectSummary } from '../../../shared/types';
+import { TerminalToggle } from '../terminal/TerminalPanel';
 import { Button, StatusBadge, inputClass } from '../ui';
 
 export interface LabTools {
@@ -87,6 +88,7 @@ export function LabHeader({
           <Button onClick={tools.fitView} aria-label="Fit everything in view">
             Fit view
           </Button>
+          {project.path ? <TerminalToggle projectId={project.id} /> : null}
         </div>
       ) : null}
     </header>

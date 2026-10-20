@@ -9,6 +9,8 @@ import { SearchBox } from './components/SearchBox';
 import { SettingsDialog } from './components/SettingsDialog';
 import { Button } from './components/ui';
 import { subscribeToMain, useHud } from './store/useHud';
+import { subscribeToTerminals, useTerminals } from './store/useTerminals';
+import { TerminalPanel, TerminalToggle } from './components/terminal/TerminalPanel';
 import { reviewCandidates, reviewDue } from '../shared/review';
 import { ArchivedView } from './views/ArchivedView';
 import { HudGrid } from './views/HudGrid';
@@ -49,9 +51,11 @@ function Shell() {
   useEffect(() => {
     void useHud.getState().load();
     const unsubscribe = subscribeToMain();
+    const unsubscribeTerminals = subscribeToTerminals();
     const timer = setInterval(() => useHud.getState().tick(), 60_000);
     return () => {
       unsubscribe();
+      unsubscribeTerminals();
       clearInterval(timer);
     };
   }, []);
@@ -61,6 +65,12 @@ function Shell() {
       const state = useHud.getState();
       // First-run setup owns the keyboard until it's finished.
       if (!state.settings.onboarded) return;
+      // ⌃` shows or hides the terminal from anywhere, as in VS Code.
+      if (event.ctrlKey && event.key === '`') {
+        event.preventDefault();
+        void useTerminals.getState().toggle();
+        return;
+      }
       if (state.dialog.kind !== 'none' || event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key === 'Escape' && state.selectedId) {
         state.closeProject();
@@ -101,6 +111,8 @@ function Shell() {
           </div>
         </>
       )}
+
+      {status === 'ready' && onboarded ? <TerminalPanel /> : null}
 
       <AnimatePresence>{selectedId ? <ProjectDetail key={selectedId} /> : null}</AnimatePresence>
 
@@ -322,6 +334,7 @@ function Toolbar({ searchRef }: { searchRef: React.RefObject<HTMLInputElement | 
       <h1 className="text-[15px] font-semibold text-ink">{title}</h1>
       <div className="ml-auto flex items-center gap-2">
         <SearchBox inputRef={searchRef} />
+        <TerminalToggle />
         <Button variant="primary" onClick={() => openDialog({ kind: 'ignite' })}>
           New project
         </Button>

@@ -2,11 +2,17 @@
 import { useState } from 'react';
 import type { UpdateSettingsInput } from '../../../shared/schemas';
 import { errorMessage, useHud } from '../../store/useHud';
+import { terminalById, usesBuiltInTerminal } from '../../../shared/terminals';
 import { SectionHeading } from './GeneralSettings';
 
 export function PickUpSettings() {
   const pickUpTerminal = useHud((s) => s.settings.pickUpTerminal);
   const pickUpLinks = useHud((s) => s.settings.pickUpLinks);
+  const terminalName = useHud((s) =>
+    usesBuiltInTerminal(s.settings.terminal)
+      ? 'a terminal'
+      : terminalById(s.settings.terminal).name,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const save = async (changes: UpdateSettingsInput) => {
@@ -27,7 +33,7 @@ export function PickUpSettings() {
       </p>
       <div className="flex flex-col gap-2">
         <Checkbox
-          label="Open a terminal in the project folder"
+          label={`Open ${terminalName} in the project folder`}
           checked={pickUpTerminal}
           onChange={(on) => void save({ pickUpTerminal: on })}
         />

@@ -8,6 +8,7 @@ import {
   type BrowserWindow,
 } from 'electron';
 import started from 'electron-squirrel-startup';
+import { spawn as spawnPty } from 'node-pty';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { CHANNELS } from '../shared/ipc';
@@ -22,6 +23,7 @@ import { LabService } from './services/lab';
 import { MediaStore } from './services/media';
 import { ProjectService } from './services/projects';
 import { startReminders } from './services/reminders';
+import { TerminalManager } from './services/terminals';
 import { SqliteStore } from './store/sqlite-store';
 import { adoptLegacyData, LEGACY_FOLDER } from './store/legacy';
 import { createMainWindow, hideCaptureWindow, toggleCaptureWindow } from './window';
@@ -123,6 +125,13 @@ if (!app.requestSingleInstanceLock()) {
     });
     const media = new MediaStore(path.join(dataDir, 'media'));
     const lab = new LabService(store, service, media);
+    // Shells for the built-in terminal panel; their output goes to the main window only.
+    const terminals = new TerminalManager(spawnPty, {
+      data: (id, data) => mainWindow?.webContents.send(CHANNELS.terminalData, id, data),
+      exit: (id, code) => mainWindow?.webContents.send(CHANNELS.terminalExit, id, code),
+    });
+    app.on('will-quit', () => terminals.killAll());
+
     // A project to show once a window created for it is ready (see focusProject below).
     let pendingFocus: string | null = null;
     // Features that react to settings changes add themselves here (capture shortcut, auto-pause).
@@ -138,6 +147,7 @@ if (!app.requestSingleInstanceLock()) {
         settingsListeners.forEach((listener) => listener(settings, previous)),
       // Only called once startup has finished, when captureShortcut (below) exists.
       capture: { hide: hideCaptureWindow, status: () => captureShortcut.status() },
+      terminals,
       takePendingFocus: () => {
         const id = pendingFocus;
         pendingFocus = null;
@@ -230,6 +240,8 @@ if (!app.requestSingleInstanceLock()) {
       });
       win.on('closed', () => {
         if (mainWindow === win) mainWindow = null;
+        // Its terminal tabs are gone with it; don't leave their shells running unseen.
+        terminals.killAll();
         // The hidden capture window still counts as a window, so 'window-all-closed' (below)
         // never fires once it exists; quit here in the same cases.
         if (process.platform !== 'darwin' || !app.isPackaged) app.quit();

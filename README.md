@@ -41,6 +41,9 @@ It runs on your computer, works offline, needs no account and is free.
   worked on it.
 - **Finds your code.** Searches your computer for Git projects, with the branch and last commit
   on each card, and opens them in your editor (VS Code, Cursor, Zed, Windsurf or Sublime Text).
+- **A terminal built in.** Open a terminal tab right beside your projects, already in the
+  project's folder, with your own shell and prompt (⌃`). Prefer Warp, iTerm or Ghostty? Pick it in
+  Settings.
 - **Full-text search.** Finds words inside your notes, links and Lab items, not just titles.
 - **Backups you control.** A copy every day on your computer, plus an optional daily copy into
   any folder, such as Google Drive or Dropbox, with one-click restore.

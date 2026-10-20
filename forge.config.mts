@@ -8,6 +8,7 @@ import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 
 const BUNDLE_ID = 'app.stokebay.desktop';
@@ -34,9 +35,29 @@ function signAdHocWithStableIdentity(app: string): void {
   execFileSync('codesign', ['--verify', '--deep', '--strict', app]);
 }
 
+/**
+ * The Vite build bundles everything into .vite/, so the app ships without node_modules. node-pty
+ * (the built-in terminal) can't be bundled: it loads a native binary and starts a helper program
+ * from its own folder. Copy just what it needs at runtime for this platform, executable bit
+ * included; asar `unpack` below keeps those files real files on disk.
+ */
+function copyNodePty(buildPath: string, platform: string, arch: string): void {
+  const from = path.resolve('node_modules', 'node-pty');
+  const to = path.join(buildPath, 'node_modules', 'node-pty');
+  const prebuild = path.join('prebuilds', `${platform}-${arch}`);
+  if (!fs.existsSync(path.join(from, prebuild))) {
+    throw new Error(`node-pty has no ready-built binary for ${platform}-${arch}`);
+  }
+  for (const part of ['package.json', 'LICENSE', 'lib', prebuild]) {
+    fs.cpSync(path.join(from, part), path.join(to, part), { recursive: true });
+  }
+  const helper = path.join(to, prebuild, 'spawn-helper');
+  if (fs.existsSync(helper)) fs.chmodSync(helper, 0o755);
+}
+
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
+    asar: { unpack: '**/node_modules/node-pty/**' },
     // No extension: the packager picks icon.icns on macOS (built by `npm run icon`).
     icon: 'assets/icon',
     appBundleId: BUNDLE_ID,
@@ -51,6 +72,9 @@ const config: ForgeConfig = {
     new MakerDeb({}),
   ],
   hooks: {
+    packageAfterCopy: async (_config, buildPath, _electronVersion, platform, arch) => {
+      copyNodePty(buildPath, platform, arch);
+    },
     postPackage: async (_config, { platform, outputPaths }) => {
       if (platform !== 'darwin') return;
       for (const dir of outputPaths) signAdHocWithStableIdentity(path.join(dir, 'Stokebay.app'));

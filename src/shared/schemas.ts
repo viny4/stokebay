@@ -2,6 +2,7 @@
 // reuses them for form errors so both sides agree on the rules.
 import { z } from 'zod';
 import { EDITOR_IDS } from './editors';
+import { TERMINAL_SETTING_IDS } from './terminals';
 import { PART_STATUSES, SETTABLE_STATUSES } from './types';
 
 const id = z.string().min(1).max(64);
@@ -296,9 +297,20 @@ export const updateSettingsInput = z.object({
     .nullable()
     .optional(),
   pickUpTerminal: z.boolean().optional(),
+  terminal: z.enum(TERMINAL_SETTING_IDS).optional(),
   pickUpLinks: z.boolean().optional(),
 });
 export type UpdateSettingsInput = z.infer<typeof updateSettingsInput>;
+
+// The built-in terminal. Keystrokes and pastes are text; a very large paste is cut off rather
+// than flooding the shell.
+export const terminalCreateInput = z.object({ projectId: id.nullable() });
+export const terminalWriteInput = z.object({ id, data: z.string().min(1).max(200_000) });
+export const terminalResizeInput = z.object({
+  id,
+  cols: z.number().int().min(2).max(1000),
+  rows: z.number().int().min(1).max(500),
+});
 
 export const captureSaveInput = z.object({
   projectId: id,

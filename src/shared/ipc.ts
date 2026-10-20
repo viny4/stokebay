@@ -43,6 +43,7 @@ import type {
   RendererErrorReport,
   ScanResult,
   SearchHit,
+  TerminalInfo,
   World,
 } from './types';
 
@@ -67,6 +68,14 @@ export const CHANNELS = {
   scanImport: 'scan:import',
   launchEditor: 'launch:editor',
   launchReveal: 'launch:reveal',
+  launchTerminal: 'launch:terminal',
+  terminalCreate: 'terminal:create',
+  terminalWrite: 'terminal:write',
+  terminalResize: 'terminal:resize',
+  terminalKill: 'terminal:kill',
+  /** Pushed from main: output from a built-in terminal, and its shell exiting. */
+  terminalData: 'terminal:data',
+  terminalExit: 'terminal:exit',
   blueprintsList: 'blueprints:list',
   ignite: 'ignite:create',
   labGet: 'lab:get',
@@ -150,6 +159,18 @@ export interface HudApi {
   scanComputer(): Promise<ScanResult>;
   importScanned(input: ScanImportInput): Promise<ProjectSummary[]>;
   openInEditor(id: Id): Promise<LaunchResult>;
+  /** Opens the terminal app chosen in Settings in the project's folder. */
+  openInTerminal(id: Id): Promise<LaunchResult>;
+
+  // The built-in terminal panel.
+  /** Starts a shell in the project's folder (or the home folder for null). */
+  terminalCreate(projectId: Id | null): Promise<TerminalInfo>;
+  /** Keystrokes and pastes; fire-and-forget so typing never waits on a round trip. */
+  terminalWrite(id: Id, data: string): void;
+  terminalResize(id: Id, cols: number, rows: number): void;
+  terminalKill(id: Id): Promise<void>;
+  onTerminalData(listener: (id: Id, data: string) => void): () => void;
+  onTerminalExit(listener: (id: Id, exitCode: number) => void): () => void;
   revealInFinder(id: Id): Promise<void>;
   onProjectsChanged(listener: (projects: ProjectSummary[]) => void): () => void;
   reportError(report: RendererErrorReport): void;

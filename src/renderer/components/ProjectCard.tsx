@@ -6,6 +6,7 @@ import { glowFor } from '../../shared/glow';
 import { daysSince, formatRelative } from '../../shared/time';
 import type { Id, ProjectSummary, World } from '../../shared/types';
 import { guard, useHud } from '../store/useHud';
+import { openProjectTerminal } from '../store/useTerminals';
 import { StatusBadge, WorldTag } from './ui';
 
 export interface ProjectCardProps {
@@ -139,6 +140,7 @@ function CardMenu({
 
   const items: MenuItem[] = [
     { label: 'Edit', run: () => openDialog({ kind: 'project', mode: 'edit', projectId: p.id }) },
+    ...(p.path ? [{ label: 'Open terminal', run: () => openProjectTerminal(p.id) }] : []),
     ...(p.status === 'active'
       ? [{ label: 'Pause', run: () => openDialog({ kind: 'pause', projectId: p.id }) }]
       : []),

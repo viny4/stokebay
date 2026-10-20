@@ -121,6 +121,7 @@ export interface HudState {
   scanComputer(): Promise<ScanResult>;
   importScanned(input: ScanImportInput): Promise<ProjectSummary[]>;
   openInEditor(id: Id): Promise<void>;
+  openInTerminal(id: Id): Promise<void>;
   revealInFinder(id: Id): Promise<void>;
   /** Weekly review "keep going" (counts as activity, so the project stops looking cold). */
   reviewKeep(id: Id): Promise<void>;
@@ -171,6 +172,7 @@ export const useHud = create<HudState>()((set, get) => {
       backupFolder: null,
       lastExternalBackupAt: null,
       editor: 'vscode',
+      terminal: 'builtin',
       autoPauseDays: 30,
       captureShortcut: null,
       lastCaptureProjectId: null,
@@ -359,6 +361,14 @@ export const useHud = create<HudState>()((set, get) => {
         return;
       }
       // Opening counts as activity, so refresh this project's glow and timeline.
+      await upsert((await window.api.getProjectDetail(id)).project);
+    },
+    async openInTerminal(id) {
+      const result = await window.api.openInTerminal(id);
+      if (!result.ok) {
+        get().showToast(result.message ?? "Couldn't open the terminal.", 'error');
+        return;
+      }
       await upsert((await window.api.getProjectDetail(id)).project);
     },
     revealInFinder: (id) => window.api.revealInFinder(id),

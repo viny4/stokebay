@@ -188,6 +188,7 @@ export const EVENT_TYPES = [
   'zone_added',
   'lab_item_removed',
   'opened_in_editor',
+  'opened_in_terminal',
   'commit_detected',
   'project_reviewed',
 ] as const;
@@ -252,6 +253,8 @@ export interface AppSettings {
   lastExternalBackupAt: EpochMs | null;
   /** Which editor "Open in…" uses (see shared/editors.ts). */
   editor: string;
+  /** Which terminal "Open terminal" and Pick up use: 'builtin' (the panel) or an app id. */
+  terminal: string;
   /** Pause active projects untouched for this many days; 0 turns it off. */
   autoPauseDays: number;
   /** Global shortcut for quick capture (an Electron accelerator); null when off. */
@@ -337,6 +340,15 @@ export interface ScanResult {
   alreadyImported: number;
   /** True when the scan stopped early because the folder tree was very large. */
   truncated: boolean;
+}
+
+/** One shell in the built-in terminal panel. */
+export interface TerminalInfo {
+  id: Id;
+  /** The project it was opened for; null for a terminal in the home folder. */
+  projectId: Id | null;
+  title: string;
+  cwd: string;
 }
 
 export interface LaunchResult {

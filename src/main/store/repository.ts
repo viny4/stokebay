@@ -28,6 +28,7 @@ export function defaultSettings(): AppSettings {
     backupFolder: null,
     lastExternalBackupAt: null,
     editor: 'vscode',
+    terminal: 'builtin',
     autoPauseDays: 30,
     captureShortcut: 'CommandOrControl+Shift+Space',
     lastCaptureProjectId: null,

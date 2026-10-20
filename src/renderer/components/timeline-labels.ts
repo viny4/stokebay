@@ -83,6 +83,8 @@ export function timelineLabel(event: ActivityEvent, entries: ReadonlyMap<Id, Ent
       return 'Removed something from the Lab';
     case 'opened_in_editor':
       return 'Opened in the editor';
+    case 'opened_in_terminal':
+      return 'Opened in the terminal';
     case 'commit_detected': {
       const count = typeof event.payload.count === 'number' ? event.payload.count : 1;
       return count === 1 ? 'New commit' : `${count} new commits`;

@@ -33,6 +33,21 @@ const api: HudApi = {
   scanComputer: () => invoke(CHANNELS.scanComputer),
   importScanned: (input) => invoke(CHANNELS.scanImport, input),
   openInEditor: (id) => invoke(CHANNELS.launchEditor, { id }),
+  openInTerminal: (id) => invoke(CHANNELS.launchTerminal, { id }),
+  terminalCreate: (projectId) => invoke(CHANNELS.terminalCreate, { projectId }),
+  terminalWrite: (id, data) => ipcRenderer.send(CHANNELS.terminalWrite, { id, data }),
+  terminalResize: (id, cols, rows) => ipcRenderer.send(CHANNELS.terminalResize, { id, cols, rows }),
+  terminalKill: (id) => invoke(CHANNELS.terminalKill, { id }),
+  onTerminalData: (listener) => {
+    const wrapped = (_event: IpcRendererEvent, id: string, data: string) => listener(id, data);
+    ipcRenderer.on(CHANNELS.terminalData, wrapped);
+    return () => ipcRenderer.removeListener(CHANNELS.terminalData, wrapped);
+  },
+  onTerminalExit: (listener) => {
+    const wrapped = (_event: IpcRendererEvent, id: string, code: number) => listener(id, code);
+    ipcRenderer.on(CHANNELS.terminalExit, wrapped);
+    return () => ipcRenderer.removeListener(CHANNELS.terminalExit, wrapped);
+  },
   revealInFinder: (id) => invoke(CHANNELS.launchReveal, { id }),
   onProjectsChanged: (listener) => {
     const wrapped = (_event: IpcRendererEvent, projects: ProjectSummary[]) => listener(projects);

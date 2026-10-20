@@ -1,6 +1,7 @@
-// Settings sections for worlds, the editor and the data folder.
+// Settings sections for worlds, the editor, the terminal and the data folder.
 import { useState } from 'react';
 import { EDITORS, type EditorId } from '../../../shared/editors';
+import { terminalById, terminalsFor, usesBuiltInTerminal } from '../../../shared/terminals';
 import type { World } from '../../../shared/types';
 import { errorMessage, guard, useHud } from '../../store/useHud';
 import { Button, inputClass } from '../ui';
@@ -215,6 +216,58 @@ export function EditorSettings() {
           </button>
         ))}
       </div>
+    </section>
+  );
+}
+
+export function TerminalSettings() {
+  const setting = useHud((s) =>
+    usesBuiltInTerminal(s.settings.terminal) ? 'builtin' : terminalById(s.settings.terminal).id,
+  );
+  const [error, setError] = useState<string | null>(null);
+  // iTerm only exists on macOS; elsewhere it isn't offered.
+  const options = [
+    { id: 'builtin' as const, name: 'Built in' },
+    ...terminalsFor(navigator.userAgent.includes('Mac')),
+  ];
+  const choose = async (id: (typeof options)[number]['id']) => {
+    try {
+      useHud.setState({ settings: await window.api.updateSettings({ terminal: id }) });
+      setError(null);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  };
+  return (
+    <section aria-labelledby="settings-terminal" className="flex flex-col gap-3">
+      <SectionHeading id="settings-terminal">Terminal</SectionHeading>
+      <p className="-mt-2 text-sm leading-relaxed text-muted">
+        Where a project&rsquo;s terminal opens. &ldquo;Built in&rdquo; opens it in a panel inside
+        Stokebay (⌃`); the others open that app in the project folder.
+      </p>
+      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Terminal">
+        {options.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="radio"
+            aria-checked={setting === t.id}
+            onClick={() => void choose(t.id)}
+            className={`h-8 rounded-md border px-3 text-[13px] transition-colors ${
+              setting === t.id
+                ? 'border-accent bg-accent/10 text-ink'
+                : 'border-line text-muted hover:bg-hover hover:text-ink'
+            }`}
+          >
+            {t.name}
+          </button>
+        ))}
+      </div>
+      {error ? (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
     </section>
   );
 }

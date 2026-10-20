@@ -9,5 +9,10 @@ export default defineConfig({
       fileName: () => 'main.cjs',
       formats: ['cjs'],
     },
+    rollupOptions: {
+      // node-pty loads a native binary and its helper program from its own folder, so it can't
+      // be bundled; it's copied into the app next to the bundle instead (see forge.config.mts).
+      external: ['node-pty'],
+    },
   },
 });

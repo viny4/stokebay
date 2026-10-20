@@ -370,6 +370,11 @@ export class ProjectService {
     return this.updateSettings({ lastReviewAt: this.clock() });
   }
 
+  async recordOpenedInTerminal(id: Id): Promise<void> {
+    const now = this.clock();
+    await this.repo.transaction((tx) => recordEvent(tx, 'opened_in_terminal', id, now));
+  }
+
   async recordOpenedInEditor(id: Id): Promise<void> {
     const now = this.clock();
     await this.repo.transaction((tx) => recordEvent(tx, 'opened_in_editor', id, now));

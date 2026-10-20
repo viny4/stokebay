@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import type { z } from 'zod';
 import { editorById } from '../../shared/editors';
+import { terminalById, usesBuiltInTerminal } from '../../shared/terminals';
 import { CHANNELS, type IpcResult } from '../../shared/ipc';
 import {
   addLinkInput,
@@ -33,6 +34,9 @@ import {
   backupRestoreInput,
   backupUseFolderInput,
   captureSaveInput,
+  terminalCreateInput,
+  terminalResizeInput,
+  terminalWriteInput,
   onboardingInput,
   openUrlInput,
   pauseInput,
@@ -52,6 +56,7 @@ import type { MediaStore } from '../services/media';
 import type { BackupController } from '../backup-controller';
 import { openInEditor, openTerminal } from '../services/launcher';
 import { pickUp } from '../services/pick-up';
+import type { TerminalManager } from '../services/terminals';
 import { readWorkState } from '../services/work-state';
 import { UserError, type ProjectService } from '../services/projects';
 import { computerScanRoots, findGitRepos, scanFolder } from '../services/scanner';
@@ -73,6 +78,8 @@ export interface HandlerDeps {
   capture?: { hide: () => void; status: () => CaptureStatus };
   /** Returns (and forgets) a project to show in a window that was just created for it. */
   takePendingFocus?: () => string | null;
+  /** Shells for the built-in terminal panel. */
+  terminals?: TerminalManager;
 }
 
 export function registerIpcHandlers({
@@ -85,6 +92,7 @@ export function registerIpcHandlers({
   onSettingsChanged,
   capture,
   takePendingFocus,
+  terminals,
 }: HandlerDeps): void {
   // Import is only allowed for folders the last scan actually found, so the renderer can't
   // smuggle in arbitrary paths.
@@ -230,6 +238,39 @@ export function registerIpcHandlers({
     return result;
   });
 
+  handle(CHANNELS.launchTerminal, idInput, async ({ id }) => {
+    const folder = service.folderOf(id);
+    await assertFolder(folder);
+    const terminal = terminalById(service.bootstrap().settings.terminal).id;
+    const result = await openTerminal(folder, undefined, terminal);
+    if (result.ok) await service.recordOpenedInTerminal(id);
+    return result;
+  });
+
+  // ---- Built-in terminal ----
+  handle(CHANNELS.terminalCreate, terminalCreateInput, async ({ projectId }) => {
+    if (!terminals) throw new UserError("The built-in terminal isn't available.");
+    if (!projectId) return terminals.create({ projectId: null, title: 'Home', cwd: null });
+    const project = service.summary(projectId);
+    // A missing folder falls back to home rather than failing, and says so in the title.
+    const folder = project.path && (await isFolder(project.path)) ? project.path : null;
+    const info = terminals.create({ projectId, title: project.title, cwd: folder });
+    await service.recordOpenedInTerminal(projectId);
+    return info;
+  });
+  handle(CHANNELS.terminalKill, idInput, ({ id }) => terminals?.kill(id));
+  // Typing goes one way and must never wait, so these are plain messages, still checked.
+  ipcMain.on(CHANNELS.terminalWrite, (event, raw: unknown) => {
+    if (!isTrustedSender(event)) return;
+    const input = terminalWriteInput.safeParse(raw);
+    if (input.success) terminals?.write(input.data.id, input.data.data);
+  });
+  ipcMain.on(CHANNELS.terminalResize, (event, raw: unknown) => {
+    if (!isTrustedSender(event)) return;
+    const input = terminalResizeInput.safeParse(raw);
+    if (input.success) terminals?.resize(input.data.id, input.data.cols, input.data.rows);
+  });
+
   handle(CHANNELS.launchReveal, idInput, async ({ id }) => {
     const folder = service.folderOf(id);
     await assertFolder(folder);
@@ -360,7 +401,13 @@ export function registerIpcHandlers({
       settings: () => service.bootstrap().settings,
       openEditor: (dir) =>
         openInEditor(dir, undefined, editorById(service.bootstrap().settings.editor).id),
-      openTerminal: (dir) => openTerminal(dir),
+      // The built-in panel is opened by the window itself once Pick up returns.
+      openTerminal: (dir) => {
+        const setting = service.bootstrap().settings.terminal;
+        return usesBuiltInTerminal(setting)
+          ? Promise.resolve({ ok: true, message: null })
+          : openTerminal(dir, undefined, terminalById(setting).id);
+      },
       openUrl: (url) => shell.openExternal(url),
     }),
   );
@@ -431,6 +478,14 @@ function handle<S extends z.ZodType, R>(
 function isTrustedSender(event: IpcMainInvokeEvent | Electron.IpcMainEvent): boolean {
   const url = event.senderFrame?.url;
   return url !== undefined && isAppUrl(url);
+}
+
+async function isFolder(folder: string): Promise<boolean> {
+  try {
+    return (await fs.stat(folder)).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 async function assertFolder(folder: string): Promise<void> {
