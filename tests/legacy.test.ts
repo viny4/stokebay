@@ -45,4 +45,17 @@ describe('adoptLegacyData', () => {
     const appData = await tempDir();
     expect(await adoptLegacyData(appData, path.join(appData, 'Stokebay'))).toBe(false);
   });
+
+  it('leaves a folder alone once its data has moved into the database', async () => {
+    const appData = await tempDir();
+    await oldInstall(appData);
+    const current = path.join(appData, 'Stokebay');
+    await fs.mkdir(current, { recursive: true });
+    // After the move: the database plus the renamed JSON file, no projects.json.
+    await fs.writeFile(path.join(current, 'stokebay.db'), '');
+    await fs.writeFile(path.join(current, 'projects.json.imported-1'), '{}');
+
+    expect(await adoptLegacyData(appData, current)).toBe(false);
+    await expect(fs.access(path.join(current, 'projects.json'))).rejects.toThrow();
+  });
 });
