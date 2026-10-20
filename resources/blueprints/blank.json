@@ -1,0 +1,10 @@
+{
+  "id": "blank",
+  "name": "Blank",
+  "kind": "other",
+  "description": "Start empty and shape it yourself.",
+  "keywords": [],
+  "modules": [],
+  "partsBin": false,
+  "checklist": []
+}

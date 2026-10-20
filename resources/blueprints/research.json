@@ -1,0 +1,30 @@
+{
+  "id": "research",
+  "name": "Research / study",
+  "kind": "research",
+  "description": "Learning a topic, a thesis, experiments.",
+  "keywords": [
+    "learn",
+    "study",
+    "research",
+    "thesis",
+    "paper",
+    "course",
+    "exam",
+    "language",
+    "experiment",
+    "analysis",
+    "notes",
+    "read",
+    "understand",
+    "certification"
+  ],
+  "modules": ["Questions", "Sources", "Experiments", "Findings"],
+  "partsBin": false,
+  "checklist": [
+    "Write the main question",
+    "Find three good sources",
+    "Try it yourself",
+    "Summarise what you learned"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "electronics-iot",
+  "name": "Electronics / IoT",
+  "kind": "mixed",
+  "description": "Circuits, sensors and connected devices.",
+  "keywords": [
+    "arduino",
+    "raspberry",
+    "esp32",
+    "sensor",
+    "circuit",
+    "pcb",
+    "iot",
+    "smart",
+    "led",
+    "solder",
+    "microcontroller",
+    "wifi",
+    "bluetooth",
+    "home automation",
+    "battery"
+  ],
+  "modules": ["Circuit", "Firmware", "Enclosure", "Testing"],
+  "partsBin": true,
+  "checklist": [
+    "Draw the circuit",
+    "Prototype on a breadboard",
+    "Write the firmware",
+    "Design the enclosure"
+  ]
+}

@@ -1,0 +1,119 @@
+// Archived projects (prototype step 4). Archiving is the app's "delete", so this is the only
+// place a project can be removed for good, and that always goes through a confirmation.
+import { AnimatePresence, motion } from 'framer-motion';
+import { memo, useMemo } from 'react';
+import { archivedProjects } from '../../shared/filter';
+import { formatRelative } from '../../shared/time';
+import type { ProjectSummary, World } from '../../shared/types';
+import { Button, StatusBadge, WorldTag } from '../components/ui';
+import { guard, useHud } from '../store/useHud';
+
+export function ArchivedView() {
+  const projects = useHud((s) => s.projects);
+  const worlds = useHud((s) => s.worlds);
+  const now = useHud((s) => s.now);
+  const archived = useMemo(() => archivedProjects(projects), [projects]);
+  const worldById = useMemo(() => new Map(worlds.map((w) => [w.id, w])), [worlds]);
+
+  return (
+    <section aria-labelledby="archived-heading" className="mx-auto max-w-3xl px-6 py-8">
+      <h2
+        id="archived-heading"
+        className="font-display text-sm tracking-[0.25em] text-status-active uppercase"
+      >
+        Archived projects
+      </h2>
+      <p className="mt-2 text-sm text-hud-muted">
+        Archived projects are hidden from the grid but keep all their notes, links and history.
+        Restore one to bring it back, or delete it permanently.
+      </p>
+
+      {archived.length === 0 ? (
+        <p className="mt-10 hud-frame p-10 text-center font-hud text-sm text-hud-muted">
+          Nothing archived.
+        </p>
+      ) : (
+        <ul className="mt-6 flex flex-col gap-3">
+          <AnimatePresence initial={false}>
+            {archived.map((p) => (
+              <ArchivedRow key={p.id} project={p} now={now} worldById={worldById} />
+            ))}
+          </AnimatePresence>
+        </ul>
+      )}
+    </section>
+  );
+}
+
+const ArchivedRow = memo(function ArchivedRow({
+  project,
+  now,
+  worldById,
+}: {
+  project: ProjectSummary;
+  now: number;
+  worldById: Map<string, World>;
+}) {
+  const restoreProject = useHud((s) => s.restoreProject);
+  const deleteProject = useHud((s) => s.deleteProject);
+  const showToast = useHud((s) => s.showToast);
+  const openDialog = useHud((s) => s.openDialog);
+  const titleId = `archived-${project.id}`;
+  const projectWorlds = project.worldIds.flatMap((id) => worldById.get(id) ?? []);
+
+  const restore = () =>
+    guard(async () => {
+      await restoreProject(project.id);
+      showToast('Restored to the grid.');
+    });
+
+  const confirmDelete = () =>
+    openDialog({
+      kind: 'confirm',
+      title: 'Delete permanently?',
+      message: `"${project.title}" and all its notes, links and history will be removed from this computer. This can't be undone.`,
+      confirmLabel: 'Delete permanently',
+      danger: true,
+      onConfirm: () => deleteProject(project.id),
+    });
+
+  return (
+    <motion.li
+      layout
+      aria-labelledby={titleId}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -24, transition: { duration: 0.18 } }}
+      className="flex flex-wrap items-center gap-4 hud-frame hud-frame-sm px-4 py-3"
+    >
+      <div className="min-w-0 flex-1">
+        <h3 id={titleId} className="truncate text-sm font-medium text-hud-text">
+          {project.title}
+        </h3>
+        <div className="mt-1 flex flex-wrap items-center gap-3">
+          <StatusBadge status={project.status} />
+          {project.archivedAt !== null ? (
+            <span className="font-hud text-xs text-hud-muted">
+              archived {formatRelative(project.archivedAt, now)}
+            </span>
+          ) : null}
+          {projectWorlds.map((w) => (
+            <WorldTag key={w.id} world={w} />
+          ))}
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button variant="primary" aria-label={`Restore ${project.title}`} onClick={restore}>
+          Restore
+        </Button>
+        <Button
+          variant="danger"
+          aria-label={`Delete ${project.title} permanently`}
+          onClick={confirmDelete}
+        >
+          Delete permanently
+        </Button>
+      </div>
+    </motion.li>
+  );
+});

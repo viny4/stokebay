@@ -1,0 +1,36 @@
+{
+  "id": "creative",
+  "name": "Creative",
+  "kind": "creative",
+  "description": "Music, art, video, writing, design.",
+  "keywords": [
+    "album",
+    "song",
+    "music",
+    "track",
+    "beat",
+    "video",
+    "film",
+    "youtube",
+    "story",
+    "book",
+    "novel",
+    "poem",
+    "art",
+    "painting",
+    "drawing",
+    "comic",
+    "photo",
+    "podcast",
+    "design",
+    "logo"
+  ],
+  "modules": ["Ideas", "Drafts", "Assets", "Release"],
+  "partsBin": false,
+  "checklist": [
+    "Collect references",
+    "Make a rough first draft",
+    "Get feedback",
+    "Finish and share"
+  ]
+}

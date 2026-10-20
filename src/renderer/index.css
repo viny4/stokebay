@@ -1,0 +1,136 @@
+/* Fonts are bundled with the app (SIL Open Font License), so the look works offline. */
+@import '@fontsource/orbitron/500.css';
+@import '@fontsource/orbitron/700.css';
+@import '@fontsource/rajdhani/500.css';
+@import '@fontsource/rajdhani/600.css';
+@import 'tailwindcss';
+
+/* Hologram blue: electric blue and cyan light on deep navy. */
+@theme {
+  --color-hud-bg: #020a17;
+  --color-hud-panel: rgb(6 22 42 / 0.84);
+  --color-hud-raised: rgb(8 28 54 / 0.96);
+  --color-hud-line: rgb(56 189 248 / 0.26);
+  --color-hud-text: #e0f2fe;
+  --color-hud-muted: #84a9cc;
+  --color-status-active: #38d6ff;
+  --color-status-paused: #fbbf24;
+  --color-status-done: #34d399;
+  --color-status-idea: #a78bfa;
+  /* Wide sci-fi letters for headings, squared letters for HUD labels. */
+  --font-display: 'Orbitron', ui-sans-serif, system-ui, sans-serif;
+  --font-hud: 'Rajdhani', ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-hud-bg);
+  color: var(--color-hud-text);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-hud {
+  font-weight: 600;
+}
+
+/* Blueprint grid (fine + coarse) under a blue glow from the top, darkening at the edges. */
+.hud-backdrop {
+  background-color: var(--color-hud-bg);
+  background-image:
+    radial-gradient(ellipse 70% 45% at 50% -5%, rgb(56 189 248 / 0.2), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 50%, transparent 55%, rgb(0 0 0 / 0.55)),
+    linear-gradient(rgb(56 189 248 / 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(56 189 248 / 0.09) 1px, transparent 1px),
+    linear-gradient(rgb(56 189 248 / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(56 189 248 / 0.04) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    160px 160px,
+    160px 160px,
+    32px 32px,
+    32px 32px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-status-active);
+  outline-offset: 2px;
+}
+
+/* Headings get focus from code (to announce a new step or panel), never from Tab, so no ring. */
+[tabindex='-1']:focus-visible {
+  outline: none;
+}
+
+/*
+ * Angled corners. Big panels use .hud-frame: the border and fill are drawn by two clipped
+ * layers behind the content, so the diagonal edges get a real border line and children
+ * (like menus) are never clipped. Set --frame-color / --frame-fill to recolour it.
+ */
+.hud-frame {
+  --cut: 16px;
+  --frame-color: var(--color-hud-line);
+  --frame-fill: var(--color-hud-panel);
+  position: relative;
+  isolation: isolate;
+}
+
+.hud-frame::before,
+.hud-frame::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  clip-path: polygon(
+    var(--cut) 0,
+    100% 0,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0 100%,
+    0 var(--cut)
+  );
+}
+
+.hud-frame::before {
+  inset: 0;
+  background: var(--frame-color);
+}
+
+.hud-frame::after {
+  inset: 1px;
+  background: linear-gradient(180deg, rgb(56 189 248 / 0.07), transparent 40%), var(--frame-fill);
+}
+
+.hud-frame-sm {
+  --cut: 9px;
+}
+
+/*
+ * Small controls (buttons, inputs, list rows, menus) get the same cut by clipping. Clipping
+ * also hides the focus outline, so those show focus as an inset ring instead.
+ */
+.rounded,
+.rounded-md,
+.rounded-lg {
+  border-radius: 0;
+  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+}
+
+.rounded:focus-visible,
+.rounded-md:focus-visible,
+.rounded-lg:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-status-active);
+}

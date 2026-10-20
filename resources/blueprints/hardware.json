@@ -1,0 +1,29 @@
+{
+  "id": "hardware-build",
+  "name": "Hardware build",
+  "kind": "hardware",
+  "description": "A physical thing: robot, drone, furniture, 3D print.",
+  "keywords": [
+    "robot",
+    "drone",
+    "3d print",
+    "printer",
+    "build",
+    "machine",
+    "arm",
+    "car",
+    "rover",
+    "furniture",
+    "frame",
+    "motor",
+    "servo",
+    "cnc",
+    "laser",
+    "woodwork",
+    "bike",
+    "gadget"
+  ],
+  "modules": ["Design", "Mechanics", "Electronics", "Code", "Build log"],
+  "partsBin": true,
+  "checklist": ["Sketch the idea", "List the parts", "Order the parts", "Build Mark I"]
+}

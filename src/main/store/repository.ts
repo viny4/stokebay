@@ -1,0 +1,131 @@
+// The storage boundary. The prototype implements it with one JSON file; v1 swaps in SQLite
+// behind the same interface, so services and the UI don't change.
+import type {
+  ActivityEvent,
+  AppSettings,
+  CanvasEdge,
+  CanvasNode,
+  Entry,
+  EpochMs,
+  GitInfo,
+  Id,
+  Module,
+  Part,
+  Pause,
+  Project,
+  ProjectKind,
+  ProjectStatus,
+  World,
+} from '../../shared/types';
+
+export const STORE_VERSION = 3;
+
+export interface StoreData {
+  version: typeof STORE_VERSION;
+  settings: AppSettings;
+  worlds: World[];
+  projects: Project[];
+  pauses: Pause[];
+  entries: Entry[];
+  events: ActivityEvent[];
+  modules: Module[];
+  parts: Part[];
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+}
+
+export interface NewProject {
+  title: string;
+  status: ProjectStatus;
+  worldIds: Id[];
+  path: string | null;
+  kind?: ProjectKind;
+  blueprintId?: string | null;
+  partsBin?: boolean;
+  isSample?: boolean;
+  createdAt: EpochMs;
+}
+
+export type ProjectChanges = Partial<
+  Pick<Project, 'title' | 'status' | 'worldIds' | 'path' | 'partsBin'>
+>;
+
+export type NewEntry = Omit<Entry, 'id' | 'checklist' | 'file' | 'moduleId'> &
+  Partial<Pick<Entry, 'checklist' | 'file' | 'moduleId'>>;
+
+export type EntryChanges = Partial<Pick<Entry, 'title' | 'body' | 'checklist' | 'moduleId'>>;
+
+export type PartChanges = Partial<
+  Pick<
+    Part,
+    'name' | 'qty' | 'unitCostMinor' | 'currency' | 'supplierUrl' | 'status' | 'notes' | 'moduleId'
+  >
+>;
+
+export type NodeChanges = Partial<Pick<CanvasNode, 'x' | 'y' | 'w' | 'h'>>;
+
+/** The parts of a data file that can be merged into another (used for example projects). */
+export type ImportableData = Pick<
+  StoreData,
+  'worlds' | 'projects' | 'pauses' | 'entries' | 'events'
+>;
+
+export interface ProjectRepository {
+  getSettings(): AppSettings;
+  listWorlds(): World[];
+  /** All projects, archived ones included. */
+  listProjects(): Project[];
+  getProject(id: Id): Project | undefined;
+  activePause(projectId: Id): Pause | undefined;
+  /** Newest first. */
+  listEntries(projectId: Id): Entry[];
+  getEntry(id: Id): Entry | undefined;
+  /** Newest first. */
+  listEvents(projectId: Id): ActivityEvent[];
+  listModules(projectId: Id): Module[];
+  getModule(id: Id): Module | undefined;
+  /** Oldest first, so the Parts Bin keeps the order parts were added. */
+  listParts(projectId: Id): Part[];
+  getPart(id: Id): Part | undefined;
+  listNodes(projectId: Id): CanvasNode[];
+  getNode(id: Id): CanvasNode | undefined;
+  listEdges(projectId: Id): CanvasEdge[];
+  /**
+   * Applies all changes in `fn` and saves them in one write, so one user action costs one
+   * backup slot. If `fn` throws, nothing is changed.
+   */
+  transaction<T>(fn: (tx: RepositoryTx) => T): Promise<T>;
+}
+
+export interface RepositoryTx {
+  updateSettings(changes: Partial<AppSettings>): AppSettings;
+  /** Appends records as they are (ids must be fresh). */
+  importData(data: ImportableData): void;
+  createWorld(input: { name: string; color: string }): World;
+  createProject(input: NewProject): Project;
+  updateProject(id: Id, changes: ProjectChanges, at: EpochMs): Project;
+  archiveProject(id: Id, at: EpochMs): Project;
+  restoreProject(id: Id, at: EpochMs): Project;
+  /** Permanent: also removes everything that belongs to the project. */
+  deleteProject(id: Id): void;
+  setGitInfo(id: Id, git: GitInfo | null): void;
+  addPause(input: Omit<Pause, 'id' | 'resumedAt'>): Pause;
+  closePause(id: Id, resumedAt: EpochMs): Pause;
+  addEntry(input: NewEntry): Entry;
+  updateEntry(id: Id, changes: EntryChanges): Entry;
+  deleteEntry(id: Id): void;
+  addEvent(input: Omit<ActivityEvent, 'id'>): ActivityEvent;
+  createModule(input: Omit<Module, 'id' | 'sortOrder'>): Module;
+  updateModule(id: Id, changes: Partial<Pick<Module, 'title' | 'color'>>): Module;
+  /** Items inside the zone stay; they just stop belonging to it. */
+  deleteModule(id: Id): void;
+  addPart(input: Omit<Part, 'id'>): Part;
+  updatePart(id: Id, changes: PartChanges, at: EpochMs): Part;
+  deletePart(id: Id): void;
+  addNode(input: Omit<CanvasNode, 'id'>): CanvasNode;
+  updateNode(id: Id, changes: NodeChanges): CanvasNode;
+  /** Also removes lines touching the node. */
+  deleteNode(id: Id): void;
+  addEdge(input: Omit<CanvasEdge, 'id'>): CanvasEdge;
+  deleteEdge(id: Id): void;
+}

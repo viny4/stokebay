@@ -1,0 +1,35 @@
+{
+  "id": "software-app",
+  "name": "Software app",
+  "kind": "software",
+  "description": "An app, website, tool or library.",
+  "keywords": [
+    "app",
+    "website",
+    "web",
+    "api",
+    "backend",
+    "frontend",
+    "library",
+    "cli",
+    "tool",
+    "bot",
+    "extension",
+    "plugin",
+    "dashboard",
+    "service",
+    "game",
+    "mobile",
+    "server",
+    "database",
+    "script"
+  ],
+  "modules": ["Design", "Frontend", "Backend", "Ship"],
+  "partsBin": false,
+  "checklist": [
+    "Write down the core idea",
+    "Sketch the main screen",
+    "Build the smallest working version",
+    "Show it to one person"
+  ]
+}
