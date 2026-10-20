@@ -21,6 +21,7 @@ const api: HudApi = {
   pauseProject: (input) => invoke(CHANNELS.projectsPause, input),
   resumeProject: (id) => invoke(CHANNELS.projectsResume, { id }),
   getProjectDetail: (id) => invoke(CHANNELS.projectsDetail, { id }),
+  search: (query) => invoke(CHANNELS.searchQuery, { query }),
   addNote: (input) => invoke(CHANNELS.entriesAddNote, input),
   addLink: (input) => invoke(CHANNELS.entriesAddLink, input),
   openLink: (entryId) => invoke(CHANNELS.entriesOpenLink, { id: entryId }),

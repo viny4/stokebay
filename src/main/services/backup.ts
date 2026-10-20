@@ -14,11 +14,12 @@ export function dayStamp(at: number): string {
 }
 
 /**
- * Copies `dataFile` to `backupDir/projects-YYYY-MM-DD.json` if today has no backup yet, then
- * keeps only the newest `keep` days. Returns the file written, or null if today was done.
+ * Writes today's data to `backupDir/projects-YYYY-MM-DD.json` if today has no backup yet, then
+ * keeps only the newest `keep` days. `source` is a file to copy or a function returning the
+ * data as JSON (the database's export). Returns the file written, or null if today was done.
  */
 export async function runDailyBackup(
-  dataFile: string,
+  source: string | (() => string),
   backupDir: string,
   now: number = Date.now(),
   keep: number = DAILY_BACKUPS_KEPT,
@@ -28,7 +29,8 @@ export async function runDailyBackup(
   let written: string | null = null;
   try {
     // COPYFILE_EXCL: never overwrite today's backup (the first copy of the day is the safe one).
-    await fs.copyFile(dataFile, target, fs.constants.COPYFILE_EXCL);
+    if (typeof source === 'string') await fs.copyFile(source, target, fs.constants.COPYFILE_EXCL);
+    else await fs.writeFile(target, source(), { encoding: 'utf8', flag: 'wx' });
     written = target;
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;

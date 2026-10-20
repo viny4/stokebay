@@ -9,6 +9,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { RESTORE_FILE } from '../store/sqlite-store';
 import { dayStamp } from './backup';
 
 export const BACKUP_FOLDER_NAME = 'Stokebay Backups';
@@ -27,12 +28,16 @@ export function backupRoot(chosen: string): string {
     : path.join(chosen, BACKUP_FOLDER_NAME);
 }
 
-/** Copies today's data file and any new Lab files into the backup folder. */
+/**
+ * Copies today's data and any new Lab files into the backup folder. `exportData` gives the data
+ * as JSON (the database's export); without it the old `projects.json` file is copied.
+ */
 export async function runExternalBackup(
   dataDir: string,
   chosen: string,
   now: number = Date.now(),
   keep: number = EXTERNAL_DAYS_KEPT,
+  exportData?: () => string,
 ): Promise<ExternalBackupResult> {
   const root = backupRoot(chosen);
   const dataOut = path.join(root, 'data');
@@ -41,7 +46,8 @@ export async function runExternalBackup(
   // Write under a temp name and rename, so the sync app never uploads a half-written file.
   const snapshot = `projects-${dayStamp(now)}.json`;
   const tmp = path.join(dataOut, `.${snapshot}.tmp`);
-  await fs.copyFile(path.join(dataDir, 'projects.json'), tmp);
+  if (exportData) await fs.writeFile(tmp, exportData(), 'utf8');
+  else await fs.copyFile(path.join(dataDir, 'projects.json'), tmp);
   await fs.rename(tmp, path.join(dataOut, snapshot));
 
   const old = (await listSnapshots(chosen)).slice(keep);
@@ -71,20 +77,34 @@ export async function listSnapshots(chosen: string): Promise<string[]> {
 }
 
 /**
- * Puts the chosen day's data back into `dataDir`. The current data file is kept as
- * `projects.json.before-restore-<time>` first, so a restore can always be undone, and Lab
- * files from the backup are added back without touching files already present.
+ * Puts the chosen day's data back into `dataDir`. The current data is kept first, so a restore
+ * can always be undone, and Lab files from the backup are added back without touching files
+ * already present.
+ *
+ * With `exportCurrent` (the database's JSON export), the current data is saved as
+ * `before-restore-<time>.json` and the backup is left as RESTORE_FILE for the database to load
+ * on the next start. Without it, the old `projects.json` file is swapped directly.
  */
 export async function restoreExternalBackup(
   dataDir: string,
   chosen: string,
   day: string,
   now: number = Date.now(),
+  exportCurrent?: () => string,
 ): Promise<void> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error('Invalid backup date');
   const root = backupRoot(chosen);
   const source = path.join(root, 'data', `projects-${day}.json`);
   JSON.parse(await fs.readFile(source, 'utf8')); // refuse a damaged backup before touching anything
+
+  if (exportCurrent) {
+    await fs.writeFile(path.join(dataDir, `before-restore-${now}.json`), exportCurrent(), 'utf8');
+    await mirrorAddOnly(path.join(root, 'media'), path.join(dataDir, 'media'));
+    const pending = path.join(dataDir, RESTORE_FILE);
+    await fs.copyFile(source, `${pending}.tmp`);
+    await fs.rename(`${pending}.tmp`, pending);
+    return;
+  }
 
   const current = path.join(dataDir, 'projects.json');
   try {

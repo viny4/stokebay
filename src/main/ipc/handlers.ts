@@ -10,6 +10,7 @@ import {
   createWorldInput,
   emptyInput,
   idInput,
+  searchInput,
   igniteInput,
   labAddChecklistInput,
   labAddFilesInput,
@@ -123,6 +124,7 @@ export function registerIpcHandlers({
   );
   handle(CHANNELS.projectsResume, idInput, ({ id }) => service.resume(id));
   handle(CHANNELS.projectsDetail, idInput, ({ id }) => service.detail(id));
+  handle(CHANNELS.searchQuery, searchInput, ({ query }) => service.search(query));
 
   handle(CHANNELS.entriesAddNote, addNoteInput, ({ projectId, title, body }) =>
     service.addNote(projectId, title, body),

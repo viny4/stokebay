@@ -201,6 +201,23 @@ export interface ProjectDetail {
   events: ActivityEvent[];
 }
 
+/** Wraps the matched words inside a search snippet (control characters never typed by users). */
+export const SNIPPET_OPEN = '\u0001';
+export const SNIPPET_CLOSE = '\u0002';
+
+/** One search result: a project (title matched) or something inside one. */
+export interface SearchHit {
+  kind: 'project' | 'entry';
+  projectId: Id;
+  projectTitle: string;
+  entryId: Id | null;
+  entryType: EntryType | null;
+  title: string;
+  /** Matching text with matches wrapped in SNIPPET_OPEN / SNIPPET_CLOSE. */
+  snippet: string;
+  archived: boolean;
+}
+
 /** App-wide settings kept in the data file. */
 export interface AppSettings {
   /** False on a fresh install until first-run setup is finished. */

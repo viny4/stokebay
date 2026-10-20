@@ -4,20 +4,21 @@ import { describe, expect, it } from 'vitest';
 import { BackupController } from '../src/main/backup-controller';
 import { listSnapshots } from '../src/main/services/external-backup';
 import { ProjectService, UserError } from '../src/main/services/projects';
-import { JsonStore } from '../src/main/store/json-store';
+import { SqliteStore } from '../src/main/store/sqlite-store';
 import { tempDir } from './helpers';
 
 const NOW = new Date(2026, 9, 20, 12).getTime();
 
 async function app() {
   const dataDir = await tempDir();
-  const store = await JsonStore.open(dataDir);
+  const store = await SqliteStore.open(dataDir);
   const service = new ProjectService(store, () => NOW);
   let restarted = false;
   const backups = new BackupController({
     service,
     dataDir,
     flush: () => store.flush(),
+    snapshot: () => JSON.stringify(store.snapshot()),
     restart: () => {
       restarted = true;
     },
@@ -57,7 +58,7 @@ describe('BackupController', () => {
     // Restoring brings the projects back and restarts the app.
     await newMac.backups.restore(day);
     expect(newMac.restarted()).toBe(true);
-    const restored = await JsonStore.open(newMac.dataDir);
+    const restored = await SqliteStore.open(newMac.dataDir);
     expect(restored.listProjects().map((p) => p.title)).toEqual(['Robot']);
   });
 });

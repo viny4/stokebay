@@ -17,6 +17,8 @@ export interface BackupControllerDeps {
   flush: () => Promise<void>;
   /** Restarts the app so it loads the restored data. */
   restart: () => void;
+  /** All data as JSON (the database's export). Omitted only for the old projects.json store. */
+  snapshot?: () => string;
   clock?: () => number;
 }
 
@@ -71,7 +73,7 @@ export class BackupController {
     }
     await this.deps.flush();
     try {
-      await runExternalBackup(this.deps.dataDir, folder, this.now);
+      await runExternalBackup(this.deps.dataDir, folder, this.now, undefined, this.deps.snapshot);
     } catch (err) {
       throw new UserError(
         `Couldn't write to the backup folder. Is it still there? (${err instanceof Error ? err.message : String(err)})`,
@@ -97,7 +99,7 @@ export class BackupController {
     const folder = this.deps.service.bootstrap().settings.backupFolder;
     if (!folder) throw new UserError('Choose the backup folder first.');
     await this.deps.flush();
-    await restoreExternalBackup(this.deps.dataDir, folder, day, this.now);
+    await restoreExternalBackup(this.deps.dataDir, folder, day, this.now, this.deps.snapshot);
     this.deps.restart();
   }
 }

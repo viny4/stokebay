@@ -39,6 +39,7 @@ export const httpUrl = z
 
 export const emptyInput = z.undefined();
 export const idInput = z.object({ id });
+export const searchInput = z.object({ query: z.string().max(200) });
 
 export const createProjectInput = z.object({
   title,

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { enableFileLogging, LOG_DAYS_KEPT } from '../src/main/logging/logger';
 import { dayStamp, DAILY_BACKUPS_KEPT, runDailyBackup } from '../src/main/services/backup';
 import { ProjectService } from '../src/main/services/projects';
-import { DATA_FILE, JsonStore } from '../src/main/store/json-store';
+import { SqliteStore } from '../src/main/store/sqlite-store';
 import { migrateStoreData } from '../src/main/store/migrate';
 import { tempDir } from './helpers';
 
@@ -47,7 +47,7 @@ describe('daily backups', () => {
 
 describe('first-run setup', () => {
   it('starts a fresh install empty and not set up', async () => {
-    const store = await JsonStore.open(await tempDir());
+    const store = await SqliteStore.open(await tempDir());
     expect(store.getSettings()).toMatchObject({ onboarded: false, backupFolder: null });
     expect(store.listProjects()).toHaveLength(0);
   });
@@ -80,7 +80,7 @@ describe('first-run setup', () => {
 
   it('creates chosen worlds once, adds examples into matching worlds, and finishes setup', async () => {
     const dir = await tempDir();
-    const store = await JsonStore.open(dir);
+    const store = await SqliteStore.open(dir);
     const service = new ProjectService(store, () => NOW);
     const data = await service.finishOnboarding(['Coding', 'coding', ' Robotics ', 'Music'], true);
 
@@ -97,12 +97,12 @@ describe('first-run setup', () => {
     expect(data.projects.every((p) => p.worldIds.every((id) => worldIds.has(id)))).toBe(true);
     expect(data.settings.onboarded).toBe(true);
 
-    const saved = JSON.parse(await fs.readFile(path.join(dir, DATA_FILE), 'utf8'));
-    expect(saved.settings.onboarded).toBe(true);
+    // Survives a restart.
+    expect((await SqliteStore.open(dir)).getSettings().onboarded).toBe(true);
   });
 
   it('can finish setup empty', async () => {
-    const service = new ProjectService(await JsonStore.open(await tempDir()), () => NOW);
+    const service = new ProjectService(await SqliteStore.open(await tempDir()), () => NOW);
     const data = await service.finishOnboarding([], false);
     expect(data.projects).toHaveLength(0);
     expect(data.worlds).toHaveLength(0);

@@ -11,6 +11,7 @@ import type {
   Part,
   Pause,
   Project,
+  SearchHit,
   World,
 } from '../../shared/types';
 import { createLogger } from '../logging/logger';
@@ -160,6 +161,51 @@ export class JsonStore implements ProjectRepository {
 
   listEdges(projectId: Id): CanvasEdge[] {
     return this.data.edges.filter((e) => e.projectId === projectId);
+  }
+
+  /** Plain substring search; the real full-text search lives in SqliteStore. */
+  search(query: string, limit = 30): SearchHit[] {
+    const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return [];
+    const matches = (text: string) => words.every((w) => text.toLowerCase().includes(w));
+    const byId = new Map(this.data.projects.map((p) => [p.id, p]));
+    const hits: SearchHit[] = [];
+    for (const p of this.data.projects) {
+      if (hits.length < limit && matches(p.title)) {
+        hits.push({
+          kind: 'project',
+          projectId: p.id,
+          projectTitle: p.title,
+          entryId: null,
+          entryType: null,
+          title: p.title,
+          snippet: p.title,
+          archived: p.archivedAt !== null,
+        });
+      }
+    }
+    let entryHits = 0;
+    for (const e of this.data.entries) {
+      const project = byId.get(e.projectId);
+      if (!project || entryHits >= limit || !matches(`${e.title} ${e.body}`)) continue;
+      entryHits++;
+      hits.push({
+        kind: 'entry',
+        projectId: project.id,
+        projectTitle: project.title,
+        entryId: e.id,
+        entryType: e.type,
+        title: e.title,
+        snippet: e.body.slice(0, 120),
+        archived: project.archivedAt !== null,
+      });
+    }
+    return hits;
+  }
+
+  /** A deep copy of everything (used to move old data into the database). */
+  snapshot(): StoreData {
+    return structuredClone(this.data);
   }
 
   async transaction<T>(fn: (tx: RepositoryTx) => T): Promise<T> {

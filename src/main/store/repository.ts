@@ -1,5 +1,5 @@
-// The storage boundary. The prototype implements it with one JSON file; v1 swaps in SQLite
-// behind the same interface, so services and the UI don't change.
+// The storage boundary. SqliteStore is the real implementation; JsonStore (the prototype's
+// single JSON file) remains for reading old data files and backups.
 import type {
   ActivityEvent,
   AppSettings,
@@ -15,6 +15,7 @@ import type {
   Project,
   ProjectKind,
   ProjectStatus,
+  SearchHit,
   World,
 } from '../../shared/types';
 
@@ -90,6 +91,12 @@ export interface ProjectRepository {
   listNodes(projectId: Id): CanvasNode[];
   getNode(id: Id): CanvasNode | undefined;
   listEdges(projectId: Id): CanvasEdge[];
+  /** Projects and items matching every word of `query` (prefixes count), best first. */
+  search(query: string, limit?: number): SearchHit[];
+  /** Everything, in the data-file format (used for backups and export). */
+  snapshot(): StoreData;
+  /** Waits until every change has reached the disk. */
+  flush(): Promise<void>;
   /**
    * Applies all changes in `fn` and saves them in one write, so one user action costs one
    * backup slot. If `fn` throws, nothing is changed.

@@ -1,7 +1,7 @@
-// The main HUD: every visible project as a glowing card, plus the sample banner and empty
-// states. Filtering lives in the store (worldFilter/search) so the top bar can drive it.
+// The project grid: every visible project as a card, plus the sample banner and empty states.
+// Filtering lives in the store (worldFilter/search) so the toolbar can drive it.
 import { AnimatePresence, motion } from 'framer-motion';
-import { useMemo, useRef } from 'react';
+import { useDeferredValue, useMemo, useRef } from 'react';
 import { visibleProjects } from '../../shared/filter';
 import type { Id, World } from '../../shared/types';
 import { ProjectCard } from '../components/ProjectCard';
@@ -12,18 +12,22 @@ import { columnCount, nextIndex } from './grid-nav';
 /** Cap the stagger so a big grid doesn't take seconds to finish appearing. */
 const STAGGER_S = 0.035;
 const MAX_STAGGERED = 12;
+/** Above this many cards, enter/exit/reflow animations cost more than they add: skip them. */
+const MAX_ANIMATED = 60;
 
 export function HudGrid() {
   const projects = useHud((s) => s.projects);
   const worlds = useHud((s) => s.worlds);
   const now = useHud((s) => s.now);
   const worldFilter = useHud((s) => s.worldFilter);
-  const search = useHud((s) => s.search);
+  // Deferred: the search field updates on every key, the grid catches up when it can.
+  const search = useDeferredValue(useHud((s) => s.search));
+  const searchMatches = useDeferredValue(useHud((s) => s.searchMatches));
   const grid = useRef<HTMLUListElement>(null);
 
   const visible = useMemo(
-    () => visibleProjects(projects, { worldId: worldFilter, search }),
-    [projects, worldFilter, search],
+    () => visibleProjects(projects, { worldId: worldFilter, search, searchMatches }),
+    [projects, worldFilter, search, searchMatches],
   );
   const worldsById = useMemo(() => new Map<Id, World>(worlds.map((w) => [w.id, w])), [worlds]);
   const live = projects.filter((p) => p.archivedAt === null);
@@ -57,23 +61,31 @@ export function HudGrid() {
           onKeyDown={onKeyDown}
           className="relative grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3"
         >
-          <AnimatePresence mode="popLayout">
-            {visible.map((project, i) => (
-              <motion.li
-                key={project.id}
-                layout
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
-                transition={{
-                  default: { duration: 0.22, delay: Math.min(i, MAX_STAGGERED) * STAGGER_S },
-                  layout: { type: 'spring', stiffness: 420, damping: 36 },
-                }}
-              >
+          {visible.length > MAX_ANIMATED ? (
+            visible.map((project, i) => (
+              <li key={project.id}>
                 <ProjectCard project={project} worldsById={worldsById} now={now} index={i} />
-              </motion.li>
-            ))}
-          </AnimatePresence>
+              </li>
+            ))
+          ) : (
+            <AnimatePresence mode="popLayout">
+              {visible.map((project, i) => (
+                <motion.li
+                  key={project.id}
+                  layout
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
+                  transition={{
+                    default: { duration: 0.22, delay: Math.min(i, MAX_STAGGERED) * STAGGER_S },
+                    layout: { type: 'spring', stiffness: 420, damping: 36 },
+                  }}
+                >
+                  <ProjectCard project={project} worldsById={worldsById} now={now} index={i} />
+                </motion.li>
+              ))}
+            </AnimatePresence>
+          )}
         </ul>
       )}
     </div>

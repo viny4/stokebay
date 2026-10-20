@@ -36,6 +36,7 @@ import type {
   ProjectSummary,
   RendererErrorReport,
   ScanResult,
+  SearchHit,
   World,
 } from './types';
 
@@ -94,6 +95,7 @@ export const CHANNELS = {
   /** Pushed from main when projects change outside a renderer request (e.g. Git refresh). */
   projectsChanged: 'projects:changed',
   logRendererError: 'log:rendererError',
+  searchQuery: 'search:query',
 } as const;
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };
@@ -110,6 +112,8 @@ export interface HudApi {
   pauseProject(input: PauseInput): Promise<ProjectSummary>;
   resumeProject(id: Id): Promise<ProjectSummary>;
   getProjectDetail(id: Id): Promise<ProjectDetail>;
+  /** Full-text search over project titles and everything inside projects. */
+  search(query: string): Promise<SearchHit[]>;
   addNote(input: AddNoteInput): Promise<ProjectDetail>;
   addLink(input: AddLinkInput): Promise<ProjectDetail>;
   openLink(entryId: Id): Promise<void>;

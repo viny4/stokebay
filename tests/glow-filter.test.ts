@@ -83,4 +83,14 @@ describe('visibleProjects', () => {
   it('lists archived projects separately', () => {
     expect(archivedProjects(all).map((p) => p.title)).toEqual(['Archived']);
   });
+
+  it('also shows projects whose notes matched the full-text search', () => {
+    expect(
+      visibleProjects(all, {
+        worldId: null,
+        search: 'castling',
+        searchMatches: new Set([all[0].id]),
+      }).map((p) => p.id),
+    ).toEqual([all[0].id]);
+  });
 });

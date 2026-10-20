@@ -5,8 +5,9 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { PauseDialog } from './components/PauseDialog';
 import { ProjectDialog } from './components/ProjectDialog';
 import { ScanDialog } from './components/ScanDialog';
+import { SearchBox } from './components/SearchBox';
 import { SettingsDialog } from './components/SettingsDialog';
-import { Button, inputClass } from './components/ui';
+import { Button } from './components/ui';
 import { subscribeToMain, useHud } from './store/useHud';
 import { ArchivedView } from './views/ArchivedView';
 import { HudGrid } from './views/HudGrid';
@@ -279,8 +280,6 @@ function NavItem({
 }
 
 function Toolbar({ searchRef }: { searchRef: React.RefObject<HTMLInputElement | null> }) {
-  const search = useHud((s) => s.search);
-  const setSearch = useHud((s) => s.setSearch);
   const view = useHud((s) => s.view);
   const openDialog = useHud((s) => s.openDialog);
   const worlds = useHud((s) => s.worlds);
@@ -300,21 +299,7 @@ function Toolbar({ searchRef }: { searchRef: React.RefObject<HTMLInputElement | 
     <header className="drag flex h-14 shrink-0 items-center gap-3 border-b border-line px-6">
       <h1 className="text-[15px] font-semibold text-ink">{title}</h1>
       <div className="ml-auto flex items-center gap-2">
-        <input
-          ref={searchRef}
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              setSearch('');
-              e.currentTarget.blur();
-            }
-          }}
-          placeholder="Search    /"
-          aria-label="Search projects by title"
-          className={`${inputClass} h-8 w-56 py-1`}
-        />
+        <SearchBox inputRef={searchRef} />
         <Button variant="primary" onClick={() => openDialog({ kind: 'ignite' })}>
           New project
         </Button>

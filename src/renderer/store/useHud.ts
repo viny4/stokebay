@@ -59,6 +59,8 @@ export interface HudState {
   now: number;
   worldFilter: Id | null;
   search: string;
+  /** Projects with something inside matching the search (from the full-text search). */
+  searchMatches: ReadonlySet<Id>;
   view: View;
   /** Project shown in the detail side panel. */
   selectedId: Id | null;
@@ -75,6 +77,7 @@ export interface HudState {
   tick(): void;
   setWorldFilter(id: Id | null): void;
   setSearch(search: string): void;
+  setSearchMatches(ids: ReadonlySet<Id>): void;
   setView(view: Exclude<View, 'lab'>): void;
 
   /** Creates a project from a blueprint; it appears on the grid. */
@@ -149,6 +152,7 @@ export const useHud = create<HudState>()((set, get) => {
     now: Date.now(),
     worldFilter: null,
     search: '',
+    searchMatches: new Set<Id>(),
     view: 'grid',
     selectedId: null,
     detail: null,
@@ -238,6 +242,7 @@ export const useHud = create<HudState>()((set, get) => {
     tick: () => set({ now: Date.now() }),
     setWorldFilter: (worldFilter) => set({ worldFilter }),
     setSearch: (search) => set({ search }),
+    setSearchMatches: (searchMatches) => set({ searchMatches }),
     setView: (view) => set({ view }),
 
     async openProject(id) {

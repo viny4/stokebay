@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { ProjectService, UserError } from '../src/main/services/projects';
-import { JsonStore } from '../src/main/store/json-store';
+import { SqliteStore } from '../src/main/store/sqlite-store';
 import { editorById } from '../src/shared/editors';
 import { tempDir } from './helpers';
 
 async function setup() {
-  const store = await JsonStore.open(await tempDir());
+  const store = await SqliteStore.open(await tempDir());
   const service = new ProjectService(store, () => 0);
   const coding = await service.createWorld('Coding');
   const music = await service.createWorld('Music');

@@ -9,6 +9,7 @@ import type {
   Project,
   ProjectDetail,
   ProjectSummary,
+  SearchHit,
   ScanCandidate,
   SettableStatus,
   World,
@@ -87,6 +88,10 @@ export class ProjectService {
 
   summary(id: Id): ProjectSummary {
     return this.toSummary(this.require(id));
+  }
+
+  search(query: string): SearchHit[] {
+    return this.repo.search(query);
   }
 
   detail(id: Id): ProjectDetail {

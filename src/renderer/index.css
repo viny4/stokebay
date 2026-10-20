@@ -142,3 +142,8 @@ select:focus-visible {
   border-radius: 10px;
   box-shadow: var(--shadow);
 }
+
+/* Escape clears the search field; the browser's own clear button doesn't match the design. */
+input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}

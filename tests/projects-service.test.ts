@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ProjectService, UserError } from '../src/main/services/projects';
 import { newId } from '../src/main/store/ids';
-import { JsonStore } from '../src/main/store/json-store';
+import { SqliteStore } from '../src/main/store/sqlite-store';
 import { createSampleData } from '../src/main/store/sample-data';
 import { DAY } from '../src/shared/time';
 import { tempDir } from './helpers';
@@ -10,7 +10,7 @@ const NOW = Date.UTC(2026, 9, 19, 12);
 
 async function setup(options: { samples?: boolean } = {}) {
   const dir = await tempDir();
-  const store = await JsonStore.open(dir, {
+  const store = await SqliteStore.open(dir, {
     seed: options.samples ? () => createSampleData(NOW, newId) : undefined,
   });
   let now = NOW;

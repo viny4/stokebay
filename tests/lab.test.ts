@@ -7,6 +7,7 @@ import { LabService, ZONE } from '../src/main/services/lab';
 import { COPY_LIMIT_BYTES, MediaStore } from '../src/main/services/media';
 import { ProjectService, UserError } from '../src/main/services/projects';
 import { DATA_FILE, JsonStore } from '../src/main/store/json-store';
+import { SqliteStore } from '../src/main/store/sqlite-store';
 import { migrateStoreData } from '../src/main/store/migrate';
 import { tempDir } from './helpers';
 
@@ -14,7 +15,7 @@ const NOW = Date.UTC(2026, 9, 20, 12);
 
 async function setup() {
   const dir = await tempDir();
-  const store = await JsonStore.open(dir);
+  const store = await SqliteStore.open(dir);
   const media = new MediaStore(path.join(dir, 'media'));
   const projects = new ProjectService(store, () => NOW);
   const lab = new LabService(store, projects, media, () => NOW);

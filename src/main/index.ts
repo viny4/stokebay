@@ -11,7 +11,7 @@ import { GitRefresher } from './services/git';
 import { LabService } from './services/lab';
 import { MediaStore } from './services/media';
 import { ProjectService } from './services/projects';
-import { JsonStore } from './store/json-store';
+import { SqliteStore } from './store/sqlite-store';
 import { adoptLegacyData, LEGACY_FOLDER } from './store/legacy';
 import { createMainWindow } from './window';
 
@@ -69,14 +69,17 @@ if (!app.requestSingleInstanceLock()) {
     if (!trialDataDir && (await adoptLegacyData(app.getPath('appData'), dataDir))) {
       log.info('copied data from the previous app name', { from: LEGACY_FOLDER });
     }
-    const store = await JsonStore.open(dataDir);
+    const store = await SqliteStore.open(dataDir);
     log.info('data loaded', { dataDir });
+    // Backups stay in the readable JSON format, so older backups remain restorable.
+    const exportJson = () => `${JSON.stringify(store.snapshot(), null, 2)}\n`;
 
     const service = new ProjectService(store);
     const backups = new BackupController({
       service,
       dataDir,
       flush: () => store.flush(),
+      snapshot: exportJson,
       restart: () => {
         app.relaunch();
         app.exit(0);
@@ -87,7 +90,7 @@ if (!app.requestSingleInstanceLock()) {
     // and the copy to the user's backup folder (e.g. Google Drive) if one is set.
     const backup = async () => {
       try {
-        const file = await runDailyBackup(store.file, path.join(dataDir, 'backups'));
+        const file = await runDailyBackup(exportJson, path.join(dataDir, 'backups'));
         if (file) log.info('daily backup written', { file: path.basename(file) });
       } catch (err) {
         log.error('daily backup failed', { error: String(err) });
@@ -139,9 +142,7 @@ if (!app.requestSingleInstanceLock()) {
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) openWindow?.();
     });
-    app.on('before-quit', () => {
-      store.flush().catch(() => undefined);
-    });
+    app.on('will-quit', () => store.close());
   };
 
   app

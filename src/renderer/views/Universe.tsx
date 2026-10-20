@@ -35,6 +35,7 @@ export function Universe() {
   const worlds = useHud((s) => s.worlds);
   const now = useHud((s) => s.now);
   const search = useHud((s) => s.search);
+  const searchMatches = useHud((s) => s.searchMatches);
   const worldFilter = useHud((s) => s.worldFilter);
   const openProject = useHud((s) => s.openProject);
   const openDialog = useHud((s) => s.openDialog);
@@ -51,7 +52,7 @@ export function Universe() {
 
   const query = search.trim().toLowerCase();
   const matches = (star: Star) =>
-    (query === '' || star.title.toLowerCase().includes(query)) &&
+    (query === '' || star.title.toLowerCase().includes(query) || searchMatches.has(star.id)) &&
     (worldFilter === null || (byId.get(star.id)?.worldIds.includes(worldFilter) ?? false));
   const filtering = query !== '' || worldFilter !== null;
 
