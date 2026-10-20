@@ -66,6 +66,10 @@ const api: HudApi = {
   backupDisable: () => invoke(CHANNELS.backupDisable),
   backupNow: () => invoke(CHANNELS.backupNow),
   backupRestore: (day) => invoke(CHANNELS.backupRestore, { day }),
+  updateWorld: (input) => invoke(CHANNELS.worldsUpdate, input),
+  deleteWorld: (id) => invoke(CHANNELS.worldsDelete, { id }),
+  setEditor: (editor) => invoke(CHANNELS.settingsSetEditor, { editor }),
+  revealDataFolder: () => invoke(CHANNELS.appRevealData),
 };
 
 contextBridge.exposeInMainWorld('api', api);

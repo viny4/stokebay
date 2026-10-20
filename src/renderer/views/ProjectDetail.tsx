@@ -1,6 +1,7 @@
 // Side panel for one project. It overlays the right edge instead of being a modal so the grid
 // stays usable: clicking another card just swaps the panel (App keys it by project id).
 import { motion } from 'framer-motion';
+import { editorById } from '../../shared/editors';
 import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { addLinkInput, addNoteInput } from '../../shared/schemas';
 import { formatRelative } from '../../shared/time';
@@ -205,6 +206,7 @@ function Actions({ project }: { project: ProjectSummary }) {
   const revealInFinder = useHud((s) => s.revealInFinder);
   const showToast = useHud((s) => s.showToast);
   const enterLab = useHud((s) => s.enterLab);
+  const editorName = useHud((s) => editorById(s.settings.editor).name);
   const id = project.id;
 
   if (project.archivedAt !== null) {
@@ -243,7 +245,7 @@ function Actions({ project }: { project: ProjectSummary }) {
       {project.path ? (
         <>
           <Button variant="primary" onClick={() => guard(() => openInEditor(id))}>
-            Open in VS Code
+            Open in {editorName}
           </Button>
           <Button onClick={() => guard(() => revealInFinder(id))}>Reveal in Finder</Button>
         </>

@@ -1,4 +1,5 @@
 import { execFile, spawn } from 'node:child_process';
+import { editorById, type EditorId } from '../../shared/editors';
 import type { LaunchResult } from '../../shared/types';
 import { createLogger } from '../logging/logger';
 
@@ -34,27 +35,38 @@ const defaultDeps: LauncherDeps = {
 };
 
 /**
- * Opens a folder in VS Code. Always argument arrays, never a shell string. Apps started from
- * Finder don't get the terminal's PATH, so `code` is often missing there; on macOS fall back
- * to asking Launch Services for the app by name.
+ * Opens a folder in the chosen editor (VS Code by default). Always argument arrays, never a
+ * shell string. Apps started from Finder don't get the terminal's PATH, so the editor's
+ * command is often missing there; on macOS fall back to asking for the app by name.
  */
 export async function openInEditor(
   dir: string,
   deps: LauncherDeps = defaultDeps,
+  editorId: EditorId = 'vscode',
 ): Promise<LaunchResult> {
+  const editor = editorById(editorId);
   try {
-    await deps.spawnDetached('code', [dir]);
+    await deps.spawnDetached(editor.cli, [dir]);
     return { ok: true, message: null };
   } catch (err) {
-    log.debug('`code` not available', { error: err instanceof Error ? err.message : String(err) });
+    log.debug('editor command not available', {
+      editor: editor.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
   if (deps.platform === 'darwin') {
     try {
-      await deps.run('open', ['-a', 'Visual Studio Code', dir]);
+      await deps.run('open', ['-a', editor.app, dir]);
       return { ok: true, message: null };
     } catch (err) {
       log.debug('open -a failed', { error: err instanceof Error ? err.message : String(err) });
     }
   }
-  return { ok: false, message: CODE_NOT_FOUND_MESSAGE };
+  return {
+    ok: false,
+    message:
+      editor.id === 'vscode'
+        ? CODE_NOT_FOUND_MESSAGE
+        : `Couldn't open ${editor.name}. Is it installed? You can pick another editor in Settings.`,
+  };
 }

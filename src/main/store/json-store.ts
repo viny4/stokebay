@@ -34,7 +34,12 @@ export const BACKUP_COUNT = 5;
 export function emptyStoreData(): StoreData {
   return {
     version: STORE_VERSION,
-    settings: { onboarded: false, backupFolder: null, lastExternalBackupAt: null },
+    settings: {
+      onboarded: false,
+      backupFolder: null,
+      lastExternalBackupAt: null,
+      editor: 'vscode',
+    },
     worlds: [],
     projects: [],
     pauses: [],
@@ -217,6 +222,20 @@ export class JsonStore implements ProjectRepository {
         };
         this.data.worlds.push(world);
         return world;
+      },
+
+      updateWorld: (id, changes) => {
+        const world = this.data.worlds.find((w) => w.id === id);
+        if (!world) throw new Error(`World ${id} not found`);
+        Object.assign(world, changes);
+        return world;
+      },
+
+      deleteWorld: (id) => {
+        this.data.worlds = this.data.worlds.filter((w) => w.id !== id);
+        for (const project of this.data.projects) {
+          project.worldIds = project.worldIds.filter((w) => w !== id);
+        }
       },
 
       createProject: (input: NewProject) => {

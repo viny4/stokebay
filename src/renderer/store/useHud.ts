@@ -2,12 +2,14 @@
 // a change only re-renders what uses it. Actions call window.api and throw on failure, so
 // forms can show the message inline; fire-and-forget callers wrap them with `guard`.
 import { create } from 'zustand';
+import type { EditorId } from '../../shared/editors';
 import type {
   AddLinkInput,
   AddNoteInput,
   CreateProjectInput,
   IgniteInput,
   OnboardingInput,
+  UpdateWorldInput,
   PauseInput,
   ScanImportInput,
   UpdateProjectInput,
@@ -81,6 +83,9 @@ export interface HudState {
   exitLab(): void;
   /** Ends first-run setup with the chosen worlds and, optionally, the example projects. */
   finishOnboarding(input: OnboardingInput): Promise<void>;
+  updateWorld(input: UpdateWorldInput): Promise<void>;
+  deleteWorld(id: Id): Promise<void>;
+  setEditor(editor: EditorId): Promise<void>;
   /**
    * Runs any Lab call (e.g. `runLab(() => window.api.labAddNote({...}))`) and applies the
    * returned Lab to the screen and the grid. Throws on failure like other actions.
@@ -150,7 +155,7 @@ export const useHud = create<HudState>()((set, get) => {
     dialog: { kind: 'none' },
     toast: null,
     blueprints: [],
-    settings: { onboarded: true, backupFolder: null, lastExternalBackupAt: null },
+    settings: { onboarded: true, backupFolder: null, lastExternalBackupAt: null, editor: 'vscode' },
     labProjectId: null,
     lab: null,
 
@@ -195,6 +200,25 @@ export const useHud = create<HudState>()((set, get) => {
     },
 
     exitLab: () => set({ view: 'grid', labProjectId: null, lab: null }),
+
+    async updateWorld(input) {
+      const world = await window.api.updateWorld(input);
+      set((s) => ({ worlds: s.worlds.map((w) => (w.id === world.id ? world : w)) }));
+    },
+
+    async deleteWorld(id) {
+      const data = await window.api.deleteWorld(id);
+      set((s) => ({
+        worlds: data.worlds,
+        projects: data.projects,
+        worldFilter: s.worldFilter === id ? null : s.worldFilter,
+      }));
+    },
+
+    async setEditor(editor) {
+      const settings = await window.api.setEditor(editor);
+      set({ settings });
+    },
 
     async finishOnboarding(input) {
       const data = await window.api.finishOnboarding(input);

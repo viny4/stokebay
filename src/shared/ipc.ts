@@ -21,8 +21,11 @@ import type {
   PauseInput,
   ScanImportInput,
   UpdateProjectInput,
+  UpdateWorldInput,
 } from './schemas';
+import type { EditorId } from './editors';
 import type {
+  AppSettings,
   BackupStatus,
   Blueprint,
   BootstrapData,
@@ -84,6 +87,10 @@ export const CHANNELS = {
   backupDisable: 'backup:disable',
   backupNow: 'backup:now',
   backupRestore: 'backup:restore',
+  worldsUpdate: 'worlds:update',
+  worldsDelete: 'worlds:delete',
+  settingsSetEditor: 'settings:setEditor',
+  appRevealData: 'app:revealData',
   /** Pushed from main when projects change outside a renderer request (e.g. Git refresh). */
   projectsChanged: 'projects:changed',
   logRendererError: 'log:rendererError',
@@ -154,6 +161,13 @@ export interface HudApi {
   backupNow(): Promise<BackupStatus>;
   /** Restores that day's backup, then the app restarts. */
   backupRestore(day: string): Promise<void>;
+
+  updateWorld(input: UpdateWorldInput): Promise<World>;
+  /** Deletes a world; its projects stay. Returns the refreshed HUD data. */
+  deleteWorld(id: Id): Promise<BootstrapData>;
+  setEditor(editor: EditorId): Promise<AppSettings>;
+  /** Shows Stokebay's data folder in Finder. */
+  revealDataFolder(): Promise<void>;
 }
 
 /** Address the renderer uses to show a Lab image; served only from the app's media. */

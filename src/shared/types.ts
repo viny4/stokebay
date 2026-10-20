@@ -208,6 +208,8 @@ export interface AppSettings {
   /** Extra backup destination (e.g. inside Google Drive); null when off. */
   backupFolder: string | null;
   lastExternalBackupAt: EpochMs | null;
+  /** Which editor "Open in…" uses (see shared/editors.ts). */
+  editor: string;
 }
 
 export interface BackupStatus {

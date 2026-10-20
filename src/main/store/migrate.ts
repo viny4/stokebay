@@ -36,6 +36,7 @@ export function migrateStoreData(raw: unknown): StoreData | null {
     onboarded: true,
     backupFolder: null,
     lastExternalBackupAt: null,
+    editor: 'vscode',
     ...(isObject(raw.settings) ? raw.settings : {}),
   };
 

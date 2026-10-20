@@ -274,6 +274,30 @@ export class ProjectService {
     return this.repo.transaction((tx) => tx.createWorld({ name, color }));
   }
 
+  async updateWorld(id: Id, changes: { name?: string; color?: string }): Promise<World> {
+    const worlds = this.repo.listWorlds();
+    if (!worlds.some((w) => w.id === id)) throw new UserError('That world no longer exists.');
+    const name = changes.name?.trim();
+    if (name && worlds.some((w) => w.id !== id && w.name.toLowerCase() === name.toLowerCase())) {
+      throw new UserError(`There's already a world called "${name}".`);
+    }
+    return this.repo.transaction((tx) =>
+      tx.updateWorld(id, {
+        ...(name ? { name } : {}),
+        ...(changes.color ? { color: changes.color } : {}),
+      }),
+    );
+  }
+
+  /** Removes the world; its projects stay and simply lose the tag. */
+  async deleteWorld(id: Id): Promise<BootstrapData> {
+    if (!this.repo.listWorlds().some((w) => w.id === id)) {
+      throw new UserError('That world no longer exists.');
+    }
+    await this.repo.transaction((tx) => tx.deleteWorld(id));
+    return this.bootstrap();
+  }
+
   folderOf(id: Id): string {
     const path = this.require(id).path;
     if (!path) throw new UserError('This project has no folder. Add one with Edit.');

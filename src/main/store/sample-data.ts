@@ -140,7 +140,7 @@ export function createSampleData(now: number, newId: () => string): StoreData {
 
   return {
     version: STORE_VERSION,
-    settings: { onboarded: true, backupFolder: null, lastExternalBackupAt: null },
+    settings: { onboarded: true, backupFolder: null, lastExternalBackupAt: null, editor: 'vscode' },
     worlds,
     projects,
     pauses,

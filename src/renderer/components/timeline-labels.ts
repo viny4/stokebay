@@ -79,7 +79,7 @@ export function timelineLabel(event: ActivityEvent, entries: ReadonlyMap<Id, Ent
     case 'lab_item_removed':
       return 'Removed something from the Lab';
     case 'opened_in_editor':
-      return 'Opened in VS Code';
+      return 'Opened in the editor';
     default: {
       // Keeps the switch exhaustive: a new event type fails typecheck until it gets a label.
       const unknown: never = event.type;

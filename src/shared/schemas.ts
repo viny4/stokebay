@@ -1,6 +1,7 @@
 // IPC payload schemas. The main process validates every request with these; the renderer
 // reuses them for form errors so both sides agree on the rules.
 import { z } from 'zod';
+import { EDITOR_IDS } from './editors';
 import { PART_STATUSES, SETTABLE_STATUSES } from './types';
 
 const id = z.string().min(1).max(64);
@@ -264,3 +265,19 @@ export type PauseInput = z.infer<typeof pauseInput>;
 export type AddNoteInput = z.infer<typeof addNoteInput>;
 export type AddLinkInput = z.infer<typeof addLinkInput>;
 export type ScanImportInput = z.infer<typeof scanImportInput>;
+
+export const updateWorldInput = z.object({
+  id,
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Give the world a name.')
+    .max(40, 'Keep it under 40 characters.')
+    .optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, 'Pick a colour.')
+    .optional(),
+});
+export const setEditorInput = z.object({ editor: z.enum(EDITOR_IDS) });
+export type UpdateWorldInput = z.infer<typeof updateWorldInput>;

@@ -102,6 +102,9 @@ export interface RepositoryTx {
   /** Appends records as they are (ids must be fresh). */
   importData(data: ImportableData): void;
   createWorld(input: { name: string; color: string }): World;
+  updateWorld(id: Id, changes: Partial<Pick<World, 'name' | 'color'>>): World;
+  /** Projects keep existing; they just lose this world tag. */
+  deleteWorld(id: Id): void;
   createProject(input: NewProject): Project;
   updateProject(id: Id, changes: ProjectChanges, at: EpochMs): Project;
   archiveProject(id: Id, at: EpochMs): Project;

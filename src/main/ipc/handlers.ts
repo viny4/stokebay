@@ -1,6 +1,7 @@
-import { dialog, ipcMain, shell, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
+import { app, dialog, ipcMain, shell, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import fs from 'node:fs/promises';
 import type { z } from 'zod';
+import { editorById } from '../../shared/editors';
 import { CHANNELS, type IpcResult } from '../../shared/ipc';
 import {
   addLinkInput,
@@ -33,7 +34,9 @@ import {
   pauseInput,
   rendererErrorInput,
   scanImportInput,
+  setEditorInput,
   updateProjectInput,
+  updateWorldInput,
 } from '../../shared/schemas';
 import type { ScanCandidate, ScanResult } from '../../shared/types';
 import { createLogger } from '../logging/logger';
@@ -173,7 +176,8 @@ export function registerIpcHandlers({
   });
 
   handle(CHANNELS.launchEditor, idInput, async ({ id }) => {
-    const result = await openInEditor(service.folderOf(id));
+    const editor = editorById(service.bootstrap().settings.editor).id;
+    const result = await openInEditor(service.folderOf(id), undefined, editor);
     if (result.ok) await service.recordOpenedInEditor(id);
     return result;
   });
@@ -257,6 +261,18 @@ export function registerIpcHandlers({
   handle(CHANNELS.onboardingFinish, onboardingInput, ({ worlds, addSamples }) =>
     service.finishOnboarding(worlds, addSamples),
   );
+
+  handle(CHANNELS.worldsUpdate, updateWorldInput, ({ id, name, color }) =>
+    service.updateWorld(id, { name, color }),
+  );
+  handle(CHANNELS.worldsDelete, idInput, ({ id }) => service.deleteWorld(id));
+  handle(CHANNELS.settingsSetEditor, setEditorInput, ({ editor }) =>
+    service.updateSettings({ editor }),
+  );
+  handle(CHANNELS.appRevealData, emptyInput, async () => {
+    const error = await shell.openPath(app.getPath('userData'));
+    if (error) throw new UserError(`Couldn't open the data folder: ${error}`);
+  });
 
   handle(CHANNELS.backupStatus, emptyInput, () => backups.status());
   handle(CHANNELS.backupChooseFolder, emptyInput, async () => {

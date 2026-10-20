@@ -184,7 +184,7 @@ function ProjectForm({
         <Field
           label="Folder (optional)"
           error={errors.path}
-          hint="Linking a folder enables Git info and Open in VS Code."
+          hint="Linking a folder enables Git info and opening it in your editor."
         >
           {(id) => (
             // The id goes on the group, not the button, so the button keeps its own name.

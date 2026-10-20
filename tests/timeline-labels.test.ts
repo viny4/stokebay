@@ -61,7 +61,7 @@ describe('timelineLabel', () => {
     expect(timelineLabel(event('project_restored'), none)).toBe('Restored');
     expect(timelineLabel(event('project_paused', { pauseId: 'x' }), none)).toBe('Paused');
     expect(timelineLabel(event('project_resumed', { pauseId: null }), none)).toBe('Resumed');
-    expect(timelineLabel(event('opened_in_editor'), none)).toBe('Opened in VS Code');
+    expect(timelineLabel(event('opened_in_editor'), none)).toBe('Opened in the editor');
   });
 
   it('uses the note title, or the first non-empty line of its body', () => {

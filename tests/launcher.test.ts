@@ -54,3 +54,27 @@ describe('openInEditor', () => {
     expect(calls).toEqual([['code', '/p']]);
   });
 });
+
+describe('openInEditor with a chosen editor', () => {
+  it("uses the editor's own command, then its app name on macOS", async () => {
+    const calls: string[][] = [];
+    const result = await openInEditor(
+      '/p',
+      deps({ run: async (cmd, args) => void calls.push([cmd, ...args]) }, calls),
+      'cursor',
+    );
+    expect(result.ok).toBe(true);
+    expect(calls).toEqual([
+      ['cursor', '/p'],
+      ['open', '-a', 'Cursor', '/p'],
+    ]);
+  });
+
+  it('names the editor when it cannot be opened', async () => {
+    const result = await openInEditor('/p', deps({}, []), 'zed');
+    expect(result).toEqual({
+      ok: false,
+      message: "Couldn't open Zed. Is it installed? You can pick another editor in Settings.",
+    });
+  });
+});
