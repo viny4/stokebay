@@ -40,8 +40,20 @@ export class BackupController {
   /** Starts backing up into `chosen` (a "Stokebay Backups" folder is made inside it). */
   async useFolder(chosen: string): Promise<BackupStatus> {
     await this.deps.service.updateSettings({ backupFolder: backupRoot(chosen) });
-    await this.backupNow();
+    // On a new Mac this folder already holds the backups to restore; backing up the empty
+    // app first would overwrite today's copy with nothing.
+    if (!(await this.wouldClobber())) await this.backupNow();
     return this.status();
+  }
+
+  /**
+   * True when this app has no projects but the folder already has backups: writing now could
+   * only replace good data with empty data.
+   */
+  private async wouldClobber(): Promise<boolean> {
+    const folder = this.deps.service.bootstrap().settings.backupFolder;
+    if (!folder || this.deps.service.summaries().length > 0) return false;
+    return (await listSnapshots(folder)).length > 0;
   }
 
   async disable(): Promise<BackupStatus> {
@@ -52,6 +64,11 @@ export class BackupController {
   async backupNow(): Promise<BackupStatus> {
     const folder = this.deps.service.bootstrap().settings.backupFolder;
     if (!folder) throw new UserError('Choose a backup folder first.');
+    if (await this.wouldClobber()) {
+      throw new UserError(
+        'This app has no projects yet, but the folder has backups. Restore one first, so an empty backup doesn’t replace them.',
+      );
+    }
     await this.deps.flush();
     try {
       await runExternalBackup(this.deps.dataDir, folder, this.now);
@@ -71,6 +88,7 @@ export class BackupController {
     if (lastExternalBackupAt !== null && dayStamp(lastExternalBackupAt) === dayStamp(this.now)) {
       return false;
     }
+    if (await this.wouldClobber()) return false;
     await this.backupNow();
     return true;
   }
