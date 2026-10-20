@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { findGitRepos, scanFolder } from '../src/main/services/scanner';
+import { computerScanRoots, findGitRepos, scanFolder } from '../src/main/services/scanner';
 import { tempDir } from './helpers';
 
 async function makeTree(root: string, paths: string[]) {
@@ -119,5 +119,60 @@ describe('findGitRepos', () => {
     await makeTree(root, ['a/1/', 'a/2/', 'b/1/', 'b/2/', 'c/.git/']);
     const result = await findGitRepos(root, { maxDirs: 2 });
     expect(result.truncated).toBe(true);
+  });
+});
+
+describe('computerScanRoots', () => {
+  it('adds own top-level folders, shared and connected drives, but no system places', async () => {
+    const disk = await tempDir();
+    const volumes = path.join(disk, 'Volumes');
+    await makeTree(disk, [
+      'Users/me/',
+      'Users/Shared/',
+      'code/',
+      'pkg/',
+      'System/',
+      'Library/',
+      'usr/',
+      'opt/',
+      '.hidden/',
+      'Volumes/USB stick/',
+      'Volumes/Recovery/',
+      'Volumes/Time Machine Backups/',
+      'Volumes/Old Backup/Backups.backupdb/',
+    ]);
+    await fs.symlink(disk, path.join(volumes, 'Macintosh HD'));
+
+    const roots = await computerScanRoots(path.join(disk, 'Users', 'me'), {
+      fsRoot: disk,
+      volumes,
+    });
+    expect(roots.map((r) => path.relative(disk, r)).sort()).toEqual(
+      [
+        path.join('Users', 'Shared'),
+        path.join('Users', 'me'),
+        path.join('Volumes', 'USB stick'),
+        'code',
+        'pkg',
+      ].sort(),
+    );
+  });
+});
+
+describe('findGitRepos across places', () => {
+  it('searches several roots and reports top folders it is not allowed into', async () => {
+    const home = await tempDir();
+    const drive = await tempDir();
+    await makeTree(home, ['Documents/app/.git/', 'Desktop/']);
+    await makeTree(drive, ['work/site/.git/']);
+    const locked = path.join(home, 'Desktop');
+    await fs.chmod(locked, 0o000);
+    try {
+      const { candidates, blocked } = await findGitRepos([home, drive]);
+      expect(candidates.map((c) => c.name).sort()).toEqual(['app', 'site']);
+      expect(blocked).toEqual([locked]);
+    } finally {
+      await fs.chmod(locked, 0o755);
+    }
   });
 });

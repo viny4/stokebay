@@ -15,6 +15,8 @@ export interface ScanOptions {
 export interface ScanOutput {
   candidates: ScanCandidate[];
   truncated: boolean;
+  /** Top folders macOS wouldn't let the app look into (privacy settings), if any. */
+  blocked?: string[];
 }
 
 /**
@@ -62,6 +64,7 @@ export async function scanFolder(root: string, options: ScanOptions = {}): Promi
 export const COMPUTER_SKIP_DIRS = new Set([
   ...SKIP_DIRS,
   'Library', // app data, caches, cloud-drive mirrors (reading those would download files)
+  'Homebrew', // Homebrew's own repos (taps), not the user's projects
   'Applications',
   'Pictures',
   'Music',
@@ -86,14 +89,96 @@ export interface FindReposOptions {
   timeLimitMs?: number;
 }
 
+/** Folders at the top of the disk that belong to macOS or other system software. */
+const SYSTEM_ROOT_DIRS = new Set([
+  'Applications',
+  'Library',
+  'System',
+  'Users',
+  'Volumes',
+  'Network',
+  'bin',
+  'cores',
+  'dev',
+  'etc',
+  'home',
+  'net',
+  'opt',
+  'private',
+  'sbin',
+  'tmp',
+  'usr',
+  'var',
+]);
+
+async function isDir(p: string): Promise<boolean> {
+  try {
+    return (await fs.stat(p)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+async function realpathOr(p: string): Promise<string> {
+  try {
+    return await fs.realpath(p);
+  } catch {
+    return p;
+  }
+}
+
 /**
- * Finds every Git repository under `root` (normally the home folder), so the user doesn't
- * have to know where their projects are. Many folders are read at once, places code never
- * lives are skipped, and a repo's insides are never searched. Stops early (truncated) on
- * very large trees.
+ * Everywhere a person might keep code: the home folder, their own folders at the top of the
+ * disk (e.g. /code), /Users/Shared, and every connected drive. Skips system folders, the
+ * Recovery volume, the link back to the main disk, and Time Machine backups (full of copies of
+ * repos that aren't separate projects).
+ */
+export async function computerScanRoots(
+  home: string,
+  locations: { fsRoot?: string; volumes?: string } = {},
+): Promise<string[]> {
+  const fsRoot = locations.fsRoot ?? '/';
+  const volumes = locations.volumes ?? '/Volumes';
+  const roots = [home];
+
+  const top = await fs.readdir(fsRoot, { withFileTypes: true }).catch(() => []);
+  for (const entry of top) {
+    if (!entry.isDirectory() || entry.name.startsWith('.') || SYSTEM_ROOT_DIRS.has(entry.name)) {
+      continue;
+    }
+    roots.push(path.join(fsRoot, entry.name));
+  }
+  const shared = path.join(fsRoot, 'Users', 'Shared');
+  if (await isDir(shared)) roots.push(shared);
+
+  const mainDisk = await realpathOr(fsRoot);
+  const drives = await fs.readdir(volumes, { withFileTypes: true }).catch(() => []);
+  for (const entry of drives) {
+    const drive = path.join(volumes, entry.name);
+    if (entry.name.startsWith('.') || entry.name === 'Recovery') continue;
+    if (/time ?machine|backups? of/i.test(entry.name)) continue;
+    if ((await realpathOr(drive)) === mainDisk) continue; // "Macintosh HD" links back to /
+    if (!(await isDir(drive))) continue;
+    if (await isDir(path.join(drive, 'Backups.backupdb'))) continue;
+    roots.push(drive);
+  }
+
+  // Drop duplicates and folders already inside another root (e.g. home under a custom root).
+  const unique = [...new Set(roots.map((r) => path.resolve(r)))];
+  return unique.filter(
+    (r) => !unique.some((other) => other !== r && r.startsWith(other + path.sep)),
+  );
+}
+
+/**
+ * Finds every Git repository under `roots` (see computerScanRoots), so the user doesn't have
+ * to know where their projects are. Many folders are read at once, places code never lives are
+ * skipped, and a repo's insides are never searched. Stops early (truncated) on very large
+ * trees. Top folders macOS refuses to open (privacy settings) are reported, never skipped
+ * silently.
  */
 export async function findGitRepos(
-  root: string,
+  roots: string | string[],
   options: FindReposOptions = {},
 ): Promise<ScanOutput> {
   const maxDepth = options.maxDepth ?? 8;
@@ -102,7 +187,11 @@ export async function findGitRepos(
   const deadline = Date.now() + (options.timeLimitMs ?? 30_000);
 
   const candidates: ScanCandidate[] = [];
-  const queue: { dir: string; depth: number }[] = [{ dir: path.resolve(root), depth: 0 }];
+  const queue = (Array.isArray(roots) ? roots : [roots]).map((r) => ({
+    dir: path.resolve(r),
+    depth: 0,
+  }));
+  const blocked: string[] = [];
   let visited = 0;
   let truncated = false;
 
@@ -110,8 +199,12 @@ export async function findGitRepos(
     let entries: Dirent[];
     try {
       entries = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
-      return; // no permission or vanished: skip quietly
+    } catch (err) {
+      // Deep folders that can't be read are normal (other apps' data). Near the top, it means
+      // macOS is blocking a whole area such as Documents or Desktop: the user must know.
+      const code = (err as NodeJS.ErrnoException).code;
+      if (depth <= 1 && (code === 'EPERM' || code === 'EACCES')) blocked.push(dir);
+      return;
     }
     // `.git` is a folder in normal repos and a file in worktrees and submodules.
     if (entries.some((e) => e.name === '.git')) {
@@ -158,7 +251,7 @@ export async function findGitRepos(
   candidates.sort(
     (a, b) => (b.lastTouchedAt ?? 0) - (a.lastTouchedAt ?? 0) || a.path.localeCompare(b.path),
   );
-  return { candidates, truncated };
+  return { candidates, truncated, blocked: blocked.sort() };
 }
 
 /**

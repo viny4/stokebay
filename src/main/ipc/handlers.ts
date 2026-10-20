@@ -50,7 +50,7 @@ import type { MediaStore } from '../services/media';
 import type { BackupController } from '../backup-controller';
 import { openInEditor } from '../services/launcher';
 import { UserError, type ProjectService } from '../services/projects';
-import { findGitRepos, scanFolder } from '../services/scanner';
+import { computerScanRoots, findGitRepos, scanFolder } from '../services/scanner';
 import { isAppUrl } from '../window';
 
 const log = createLogger('ipc');
@@ -157,7 +157,8 @@ export function registerIpcHandlers({
   /** Leaves out folders that are already projects and remembers the rest for import. */
   const scanResult = (
     root: string,
-    found: { candidates: ScanCandidate[]; truncated: boolean },
+    searched: string[],
+    found: { candidates: ScanCandidate[]; truncated: boolean; blocked?: string[] },
     started: number,
   ): ScanResult => {
     const known = new Set(service.bootstrap().projects.map((p) => p.path));
@@ -167,10 +168,14 @@ export function registerIpcHandlers({
       found: found.candidates.length,
       fresh: fresh.length,
       truncated: found.truncated,
+      places: searched.length,
+      blocked: found.blocked?.length ?? 0,
       durationMs: Date.now() - started,
     });
     return {
       root,
+      searched,
+      blocked: found.blocked ?? [],
       candidates: fresh,
       alreadyImported: found.candidates.length - fresh.length,
       truncated: found.truncated,
@@ -181,14 +186,15 @@ export function registerIpcHandlers({
     const root = await pickFolder('Choose a folder to scan for projects');
     if (!root) return null;
     const started = Date.now();
-    return scanResult(root, await scanFolder(root), started);
+    return scanResult(root, [root], await scanFolder(root), started);
   });
 
-  // The whole home folder, Git projects only: no folder to pick.
+  // The whole computer (home, own folders, connected drives), Git projects only.
   handle(CHANNELS.scanComputer, emptyInput, async (): Promise<ScanResult> => {
     const root = os.homedir();
     const started = Date.now();
-    return scanResult(root, await findGitRepos(root), started);
+    const searched = await computerScanRoots(root);
+    return scanResult(root, searched, await findGitRepos(searched), started);
   });
 
   handle(CHANNELS.scanImport, scanImportInput, async ({ paths, worldIds }) => {

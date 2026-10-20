@@ -163,13 +163,13 @@ export function ScanDialog() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-xs text-muted">
-                  {wholeComputer ? 'Searched your home folder for Git projects' : 'Scanned'}
+                  {wholeComputer ? 'Searched this computer for Git projects' : 'Scanned'}
                 </p>
                 <p
                   className="selectable mt-0.5 break-all text-sm font-medium text-ink"
-                  title={result.root}
+                  title={result.searched.join('\n')}
                 >
-                  {result.root}
+                  {wholeComputer ? placesLabel(result) : result.root}
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">
@@ -187,6 +187,31 @@ export function ScanDialog() {
                 </Button>
               </div>
             </div>
+
+            {result.blocked.length > 0 ? (
+              <div
+                role="alert"
+                className="flex flex-col items-start gap-2 rounded-md border border-danger/30 bg-danger/10 p-3"
+              >
+                <p className="text-sm text-ink">
+                  macOS didn&apos;t let Stokebay look in {blockedLabel(result)}, so projects there
+                  are missing from this list.
+                </p>
+                <p className="text-xs text-muted">
+                  In Privacy settings, open Files and Folders, find Stokebay and turn those folders
+                  on, then search again. (For everything at once, add Stokebay under Full Disk
+                  Access.)
+                </p>
+                <div className="flex gap-2">
+                  <Button onClick={() => void window.api.openPrivacySettings()}>
+                    Open Privacy settings
+                  </Button>
+                  <Button onClick={() => void searchComputer()} disabled={disabled}>
+                    Search again
+                  </Button>
+                </div>
+              </div>
+            ) : null}
 
             {result.truncated ? (
               <p className="rounded-md border border-line bg-sunken px-3 py-2 text-xs text-muted">
@@ -330,8 +355,9 @@ function CandidateList({
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm text-ink">{c.name}</span>
                 <span className="block truncate text-xs text-muted">
-                  {wholeComputer ? '~/' : ''}
-                  {relativePath(result.root, c.path)}
+                  {wholeComputer
+                    ? homeRelative(result.root, c.path)
+                    : relativePath(result.root, c.path)}
                 </span>
               </span>
               {c.lastTouchedAt ? (
@@ -350,4 +376,33 @@ function CandidateList({
       </ul>
     </div>
   );
+}
+
+/** "~/Documents/app" inside the home folder; the full path anywhere else (other folders, drives). */
+function homeRelative(home: string, path: string): string {
+  const rel = relativePath(home, path);
+  return rel === path ? path : `~/${rel}`;
+}
+
+/** "your home folder, /pkg and the drive "USB"" for the places a computer search covered. */
+function placesLabel(result: ScanResult): string {
+  const others = result.searched.filter((p) => p !== result.root);
+  const names = [
+    'your home folder',
+    ...others.map((p) => (p.startsWith('/Volumes/') ? `the drive “${p.slice(9)}”` : p)),
+  ];
+  return names.length === 1
+    ? names[0]
+    : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+/** "Documents, Desktop" for folders in the home folder; full paths otherwise. */
+function blockedLabel(result: ScanResult): string {
+  const names = result.blocked.map((p) => {
+    const rel = relativePath(result.root, p);
+    return rel === p ? p : rel;
+  });
+  return names.length <= 1
+    ? (names[0] ?? '')
+    : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }

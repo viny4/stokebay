@@ -286,7 +286,12 @@ export interface ScanCandidate {
 }
 
 export interface ScanResult {
+  /** The folder scanned, or the home folder for a whole-computer search. */
   root: string;
+  /** Every place searched (home, own folders at the top of the disk, connected drives). */
+  searched: string[];
+  /** Folders macOS wouldn't let the app look into; projects there may be missing. */
+  blocked: string[];
   candidates: ScanCandidate[];
   /** Folders found that are already projects (including archived ones). */
   alreadyImported: number;
