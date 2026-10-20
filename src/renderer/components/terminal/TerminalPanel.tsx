@@ -29,8 +29,10 @@ export function TerminalPanel() {
   return (
     <aside
       aria-label="Terminal"
-      style={{ width }}
-      className={`relative shrink-0 flex-col border-l border-line bg-surface ${open ? 'flex' : 'hidden'}`}
+      // The chosen width is a preference: on a small window, with the project panel open too,
+      // the terminal gives way (down to its minimum) before the project list gets too narrow.
+      style={{ flexBasis: width }}
+      className={`relative min-w-[320px] shrink flex-col border-l border-line bg-surface ${open ? 'flex' : 'hidden'}`}
     >
       {/* Drag the left edge to resize. */}
       <div
@@ -46,7 +48,10 @@ export function TerminalPanel() {
         }}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
-          dragStart.current = { x: e.clientX, width };
+          dragStart.current = {
+            x: e.clientX,
+            width: e.currentTarget.parentElement?.offsetWidth ?? width,
+          };
         }}
         onPointerMove={(e) => {
           if (dragStart.current) {
@@ -115,9 +120,11 @@ export function TerminalPanel() {
         </button>
       </header>
 
-      <div className="relative min-h-0 flex-1">
+      <div data-terminal-body className="relative min-h-0 flex-1">
         {tabs.map((tab) => (
           <TerminalView
+            cols={tab.info.cols}
+            rows={tab.info.rows}
             key={tab.info.id}
             id={tab.info.id}
             active={open && tab.info.id === activeId}

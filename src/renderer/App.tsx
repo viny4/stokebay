@@ -103,7 +103,9 @@ function Shell() {
       ) : (
         <>
           <Sidebar />
-          <div className="flex min-w-0 flex-1 flex-col">
+          {/* A container: the toolbar and views size themselves by this column's width, which
+              changes with the project panel and terminal, not by the window's. */}
+          <div className="@container flex min-w-[320px] flex-1 flex-col">
             <Toolbar searchRef={searchRef} />
             <main className="relative flex-1 overflow-y-auto">
               <MainView status={status} loadError={loadError} view={view} />
@@ -112,9 +114,12 @@ function Shell() {
         </>
       )}
 
+      {/* One panel for whichever project is open: switching projects swaps its contents in place
+          (no slide), so clicking down the list next to the terminal stays instant. */}
+      <AnimatePresence initial={false}>
+        {selectedId ? <ProjectDetail key="project-panel" /> : null}
+      </AnimatePresence>
       {status === 'ready' && onboarded ? <TerminalPanel /> : null}
-
-      <AnimatePresence>{selectedId ? <ProjectDetail key={selectedId} /> : null}</AnimatePresence>
 
       <AnimatePresence>
         {dialog.kind === 'ignite' ? (
@@ -331,12 +336,22 @@ function Toolbar({ searchRef }: { searchRef: React.RefObject<HTMLInputElement | 
 
   return (
     <header className="drag flex h-14 shrink-0 items-center gap-3 border-b border-line px-6">
-      <h1 className="text-[15px] font-semibold text-ink">{title}</h1>
-      <div className="ml-auto flex items-center gap-2">
+      <h1 className="min-w-0 truncate text-[15px] font-semibold whitespace-nowrap text-ink">
+        {title}
+      </h1>
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         <SearchBox inputRef={searchRef} />
         <TerminalToggle />
-        <Button variant="primary" onClick={() => openDialog({ kind: 'ignite' })}>
-          New project
+        <Button
+          variant="primary"
+          aria-label="New project"
+          title="New project  N"
+          onClick={() => openDialog({ kind: 'ignite' })}
+        >
+          <span aria-hidden className="hidden text-base leading-none @max-[600px]:inline">
+            +
+          </span>
+          <span className="@max-[600px]:hidden">New project</span>
         </Button>
       </div>
     </header>

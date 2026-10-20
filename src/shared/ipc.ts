@@ -163,8 +163,8 @@ export interface HudApi {
   openInTerminal(id: Id): Promise<LaunchResult>;
 
   // The built-in terminal panel.
-  /** Starts a shell in the project's folder (or the home folder for null). */
-  terminalCreate(projectId: Id | null): Promise<TerminalInfo>;
+  /** Starts a shell in the project's folder (or the home folder for null), at this size. */
+  terminalCreate(projectId: Id | null, size: { cols: number; rows: number }): Promise<TerminalInfo>;
   /** Keystrokes and pastes; fire-and-forget so typing never waits on a round trip. */
   terminalWrite(id: Id, data: string): void;
   terminalResize(id: Id, cols: number, rows: number): void;

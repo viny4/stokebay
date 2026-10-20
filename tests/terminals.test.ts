@@ -68,6 +68,23 @@ describe('TerminalManager', () => {
     expect(ptys[0].size).toEqual([120, 40]);
   });
 
+  it('starts the shell at the size the window measured, so the prompt is drawn once', () => {
+    const { manager, spawned } = setup();
+    const info = manager.create({
+      projectId: null,
+      title: 'Home',
+      cwd: '/tmp',
+      cols: 97,
+      rows: 41,
+    });
+    expect(spawned[0][2]).toMatchObject({ cols: 97, rows: 41 });
+    expect(info).toMatchObject({ cols: 97, rows: 41 });
+    expect(manager.create({ projectId: null, title: 'B', cwd: '/tmp' })).toMatchObject({
+      cols: 80,
+      rows: 24,
+    });
+  });
+
   it('batches output into one message', async () => {
     vi.useFakeTimers();
     try {

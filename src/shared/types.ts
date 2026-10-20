@@ -349,6 +349,9 @@ export interface TerminalInfo {
   projectId: Id | null;
   title: string;
   cwd: string;
+  /** The size the shell started at (measured from the panel before it started). */
+  cols: number;
+  rows: number;
 }
 
 export interface LaunchResult {

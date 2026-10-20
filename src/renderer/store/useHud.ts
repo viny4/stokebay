@@ -134,6 +134,8 @@ export function errorMessage(err: unknown): string {
 }
 
 let toastSeq = 0;
+/** Counts project opens, so a slow answer for an earlier click can't replace a later one. */
+let openSeq = 0;
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
 export const useHud = create<HudState>()((set, get) => {
@@ -266,15 +268,24 @@ export const useHud = create<HudState>()((set, get) => {
     setView: (view) => set({ view }),
 
     async openProject(id) {
-      set({ selectedId: id, detail: null });
+      // Opening from closed shows the panel straight away (with a placeholder). Switching from
+      // another project keeps the current one up until the new one has loaded, then swaps both
+      // together, so the panel never flashes empty. Only the latest click wins.
+      const seq = ++openSeq;
+      if (get().selectedId === null) set({ selectedId: id, detail: null });
       try {
-        await refreshDetail(id);
+        const detail = await window.api.getProjectDetail(id);
+        if (seq === openSeq) set({ selectedId: id, detail });
       } catch (err) {
-        set({ selectedId: null });
+        if (seq !== openSeq) return;
+        set({ selectedId: null, detail: null });
         get().showToast(errorMessage(err), 'error');
       }
     },
-    closeProject: () => set({ selectedId: null, detail: null }),
+    closeProject: () => {
+      openSeq++;
+      set({ selectedId: null, detail: null });
+    },
 
     openDialog: (dialog) => set({ dialog }),
     closeDialog: () => set({ dialog: { kind: 'none' } }),

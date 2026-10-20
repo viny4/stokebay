@@ -248,13 +248,14 @@ export function registerIpcHandlers({
   });
 
   // ---- Built-in terminal ----
-  handle(CHANNELS.terminalCreate, terminalCreateInput, async ({ projectId }) => {
+  handle(CHANNELS.terminalCreate, terminalCreateInput, async ({ projectId, cols, rows }) => {
     if (!terminals) throw new UserError("The built-in terminal isn't available.");
-    if (!projectId) return terminals.create({ projectId: null, title: 'Home', cwd: null });
+    if (!projectId)
+      return terminals.create({ projectId: null, title: 'Home', cwd: null, cols, rows });
     const project = service.summary(projectId);
     // A missing folder falls back to home rather than failing, and says so in the title.
     const folder = project.path && (await isFolder(project.path)) ? project.path : null;
-    const info = terminals.create({ projectId, title: project.title, cwd: folder });
+    const info = terminals.create({ projectId, title: project.title, cwd: folder, cols, rows });
     await service.recordOpenedInTerminal(projectId);
     return info;
   });

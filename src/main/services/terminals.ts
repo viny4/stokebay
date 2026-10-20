@@ -49,14 +49,30 @@ export class TerminalManager {
     private readonly env: NodeJS.ProcessEnv = process.env,
   ) {}
 
-  create(input: { projectId: Id | null; title: string; cwd: string | null }): TerminalInfo {
+  create(input: {
+    projectId: Id | null;
+    title: string;
+    cwd: string | null;
+    /** Measured by the window first, so the prompt is drawn once, at the right width. */
+    cols?: number;
+    rows?: number;
+  }): TerminalInfo {
     if (this.sessions.size >= MAX_TERMINALS) {
       throw new Error(`Close a terminal first; ${MAX_TERMINALS} are open.`);
     }
     const cwd = input.cwd ?? os.homedir();
     const { shell, args } = defaultShell(this.platform, this.env);
-    const pty = this.spawn(shell, args, { cwd, cols: 80, rows: 24, env: shellEnv(this.env) });
-    const info: TerminalInfo = { id: newId(), projectId: input.projectId, title: input.title, cwd };
+    const cols = input.cols ?? 80;
+    const rows = input.rows ?? 24;
+    const pty = this.spawn(shell, args, { cwd, cols, rows, env: shellEnv(this.env) });
+    const info: TerminalInfo = {
+      id: newId(),
+      projectId: input.projectId,
+      title: input.title,
+      cwd,
+      cols,
+      rows,
+    };
     const session: Session = { info, pty, pending: '', timer: null };
     this.sessions.set(info.id, session);
 

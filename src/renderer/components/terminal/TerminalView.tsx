@@ -1,26 +1,13 @@
 // One shell's screen, drawn by xterm.js. Every tab keeps its view mounted (only hidden), so
 // switching tabs keeps scrollback and whatever is running.
 import { FitAddon } from '@xterm/addon-fit';
+import { WebglAddon } from '@xterm/addon-webgl';
 import { Terminal, type ITheme } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import { useEffect, useRef } from 'react';
 import type { Id } from '../../../shared/types';
 import { attachTerminal } from '../../store/useTerminals';
-
-// The system monospace first; Nerd Fonts after it so prompt icons (Powerlevel10k, Starship…)
-// still draw when one is installed, since the browser falls back glyph by glyph.
-const FONT_FAMILY = [
-  '"SF Mono"',
-  'Menlo',
-  '"MesloLGS NF"',
-  '"MesloLGS Nerd Font"',
-  '"JetBrainsMono Nerd Font"',
-  '"Hack Nerd Font"',
-  '"FiraCode Nerd Font"',
-  'Monaco',
-  'Consolas',
-  'monospace',
-].join(', ');
+import { TERMINAL_OPTIONS, TERMINAL_PADDING_CLASS } from './terminal-size';
 
 // Warm, slightly muted ANSI colours that sit with the app's palette instead of a stock theme.
 const LIGHT_ANSI = {
@@ -74,7 +61,17 @@ function currentTheme(): ITheme {
   };
 }
 
-export function TerminalView({ id, active }: { id: Id; active: boolean }) {
+export function TerminalView({
+  id,
+  cols,
+  rows,
+  active,
+}: {
+  id: Id;
+  cols: number;
+  rows: number;
+  active: boolean;
+}) {
   const host = useRef<HTMLDivElement>(null);
   const term = useRef<Terminal | null>(null);
   const fit = useRef<FitAddon | null>(null);
@@ -82,19 +79,21 @@ export function TerminalView({ id, active }: { id: Id; active: boolean }) {
   useEffect(() => {
     const el = host.current;
     if (!el) return;
-    const terminal = new Terminal({
-      fontFamily: FONT_FAMILY,
-      fontSize: 12.5,
-      lineHeight: 1.2,
-      cursorBlink: true,
-      scrollback: 5000,
-      macOptionIsMeta: true,
-      allowProposedApi: false,
-      theme: currentTheme(),
-    });
+    // Starts at the size the shell was started with, so fitting it changes nothing.
+    const terminal = new Terminal({ ...TERMINAL_OPTIONS, cols, rows, theme: currentTheme() });
     const fitAddon = new FitAddon();
     terminal.loadAddon(fitAddon);
     terminal.open(el);
+    // Draw with the GPU: the default DOM renderer rebuilds rows of elements on every update,
+    // which is what makes fast output and panels moving beside it stutter. If the GPU context
+    // is lost (sleep, driver reset) xterm falls back to the DOM renderer on its own.
+    try {
+      const webgl = new WebglAddon();
+      webgl.onContextLoss(() => webgl.dispose());
+      terminal.loadAddon(webgl);
+    } catch {
+      // No WebGL here: the DOM renderer still works, just slower.
+    }
     term.current = terminal;
     fit.current = fitAddon;
 
@@ -143,6 +142,8 @@ export function TerminalView({ id, active }: { id: Id; active: boolean }) {
       term.current = null;
       fit.current = null;
     };
+    // The starting size only matters once; later sizes come from fitting.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
@@ -158,7 +159,7 @@ export function TerminalView({ id, active }: { id: Id; active: boolean }) {
   return (
     <div
       ref={host}
-      className={`selectable absolute inset-0 py-2 pl-3 ${active ? '' : 'invisible'}`}
+      className={`selectable absolute inset-0 ${TERMINAL_PADDING_CLASS} ${active ? '' : 'invisible'}`}
       aria-hidden={!active}
     />
   );

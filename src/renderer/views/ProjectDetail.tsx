@@ -1,9 +1,10 @@
-// Side panel for one project. It overlays the right edge instead of being a modal so the grid
-// stays usable: clicking another card just swaps the panel (App keys it by project id).
+// Side panel for one project, docked as a column between the grid and the terminal so every card
+// stays clickable. The panel itself stays mounted while switching projects; only its contents
+// change (keyed by project), so moving down the list never re-runs the slide-in.
 import { motion } from 'framer-motion';
 import { editorById } from '../../shared/editors';
 import { terminalById, usesBuiltInTerminal } from '../../shared/terminals';
-import { openProjectTerminal, pickUpProject, useTerminals } from '../store/useTerminals';
+import { openProjectTerminal, pickUpProject } from '../store/useTerminals';
 import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { addLinkInput, addNoteInput } from '../../shared/schemas';
 import { formatRelative } from '../../shared/time';
@@ -20,29 +21,17 @@ import { errorMessage, guard, useHud } from '../store/useHud';
 
 export function ProjectDetail() {
   const selectedId = useHud((s) => s.selectedId);
-  const detail = useHud((s) => s.detail);
   const closeProject = useHud((s) => s.closeProject);
-  const headingId = useId();
-  const headingRef = useRef<HTMLHeadingElement>(null);
-
-  // The resume card only gets its entrance and focus when the panel *opens* on a paused project.
-  // Pausing again from inside the panel shouldn't steal focus, so this is decided once, from
-  // the first detail that arrives (setState during render is React's derived-state pattern).
-  const terminalOffset = useTerminals((s) => (s.open && s.tabs.length > 0 ? s.width : 0));
-  const ready = detail !== null && detail.project.id === selectedId;
-  const [openedPaused, setOpenedPaused] = useState<boolean | null>(null);
-  if (ready && openedPaused === null) setOpenedPaused(detail.project.status === 'paused');
 
   return (
     <motion.aside
-      aria-labelledby={headingId}
-      // With the terminal open, the panel slides out beside it instead of covering it.
-      style={{ right: terminalOffset }}
-      className="fixed top-0 right-0 z-40 flex h-full w-[480px] max-w-full flex-col border-l border-line bg-raised shadow-pop"
-      initial={{ x: '100%', opacity: 0.6 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: '100%', opacity: 0.6 }}
-      transition={{ type: 'tween', duration: 0.22, ease: 'easeOut' }}
+      aria-label="Project"
+      // Grows to 440px, gives way down to 340px before the grid gets too narrow.
+      className="relative flex h-full min-w-[340px] shrink basis-[440px] flex-col border-l border-line bg-raised"
+      initial={{ opacity: 0, x: 16 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.1 } }}
+      transition={{ type: 'tween', duration: 0.16, ease: 'easeOut' }}
     >
       <button
         type="button"
@@ -52,19 +41,41 @@ export function ProjectDetail() {
       >
         ×
       </button>
-      <div className="flex-1 overflow-y-auto px-6 pt-6 pb-12">
-        {ready ? (
-          <DetailBody
-            detail={detail}
-            headingId={headingId}
-            headingRef={headingRef}
-            emphasizeResume={openedPaused === true}
-          />
-        ) : (
-          <Skeleton headingId={headingId} />
-        )}
-      </div>
+      {selectedId ? <PanelContent key={selectedId} selectedId={selectedId} /> : null}
     </motion.aside>
+  );
+}
+
+/** One project's contents; keyed by project so its forms and scroll start fresh for each one. */
+function PanelContent({ selectedId }: { selectedId: string }) {
+  const detail = useHud((s) => s.detail);
+  const headingId = useId();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // The resume card only gets its entrance and focus when a paused project is *opened*.
+  // Pausing again from inside the panel shouldn't steal focus, so this is decided once, from
+  // the first detail that arrives (setState during render is React's derived-state pattern).
+  const ready = detail !== null && detail.project.id === selectedId;
+  const [openedPaused, setOpenedPaused] = useState<boolean | null>(null);
+  if (ready && openedPaused === null) setOpenedPaused(detail.project.status === 'paused');
+
+  return (
+    <div
+      className="flex-1 overflow-y-auto px-6 pt-6 pb-12"
+      aria-labelledby={headingId}
+      role="region"
+    >
+      {ready ? (
+        <DetailBody
+          detail={detail}
+          headingId={headingId}
+          headingRef={headingRef}
+          emphasizeResume={openedPaused === true}
+        />
+      ) : (
+        <Skeleton headingId={headingId} />
+      )}
+    </div>
   );
 }
 

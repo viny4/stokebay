@@ -70,7 +70,7 @@ export function AreaOverview({ area, projects }: { area: World; projects: Projec
         {live.length === 0 ? <span>No projects in this area yet.</span> : null}
       </p>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 @3xl:grid-cols-3">
         <Card title="Pick up where you left off" empty="Nothing paused here.">
           {paused.slice(0, MAX_ROWS).map((p) => (
             <Row key={p.id} onClick={() => open(p.id)}>

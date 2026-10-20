@@ -111,7 +111,7 @@ export function SearchBox({ inputRef }: { inputRef: React.RefObject<HTMLInputEle
         onKeyDown={onKeyDown}
         placeholder="Search    /"
         aria-label="Search projects and notes"
-        className={`${inputClass} h-8 w-64 py-1`}
+        className={`${inputClass} h-8 w-64 py-1 @max-[760px]:w-44 @max-[520px]:w-28`}
       />
       {showList ? (
         <div

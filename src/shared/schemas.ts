@@ -304,7 +304,11 @@ export type UpdateSettingsInput = z.infer<typeof updateSettingsInput>;
 
 // The built-in terminal. Keystrokes and pastes are text; a very large paste is cut off rather
 // than flooding the shell.
-export const terminalCreateInput = z.object({ projectId: id.nullable() });
+export const terminalCreateInput = z.object({
+  projectId: id.nullable(),
+  cols: z.number().int().min(2).max(1000),
+  rows: z.number().int().min(1).max(500),
+});
 export const terminalWriteInput = z.object({ id, data: z.string().min(1).max(200_000) });
 export const terminalResizeInput = z.object({
   id,

@@ -1,6 +1,6 @@
 // The project grid: every visible project as a card, plus the sample banner and empty states.
 // Filtering lives in the store (worldFilter/search) so the toolbar can drive it.
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { visibleProjects } from '../../shared/filter';
 import { reviewCandidates, reviewDue } from '../../shared/review';
@@ -15,7 +15,7 @@ import { startWeeklyReview } from './WeeklyReview';
 /** Cap the stagger so a big grid doesn't take seconds to finish appearing. */
 const STAGGER_S = 0.035;
 const MAX_STAGGERED = 12;
-/** Above this many cards, enter/exit/reflow animations cost more than they add: skip them. */
+/** Above this many cards, even the fade-in costs more than it adds: skip it. */
 const MAX_ANIMATED = 60;
 /** "Not now" on the review banner lasts until the app restarts, not forever. */
 let reviewBannerDismissed = false;
@@ -78,33 +78,27 @@ export function HudGrid() {
           ref={grid}
           aria-label="Projects"
           onKeyDown={onKeyDown}
-          className="relative grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3"
+          className="relative grid grid-cols-[repeat(auto-fill,minmax(min(240px,100%),1fr))] gap-3"
         >
-          {visible.length > MAX_ANIMATED ? (
-            visible.map((project, i) => (
-              <li key={project.id}>
-                <ProjectCard project={project} worldsById={worldsById} now={now} index={i} />
-              </li>
-            ))
-          ) : (
-            <AnimatePresence mode="popLayout">
-              {visible.map((project, i) => (
+          {visible.length > MAX_ANIMATED
+            ? visible.map((project, i) => (
+                <li key={project.id}>
+                  <ProjectCard project={project} worldsById={worldsById} now={now} index={i} />
+                </li>
+              ))
+            : // Cards fade in when a list first appears, nothing more. No layout animation: it
+              // re-measures every card whenever the grid's width changes (the project panel or
+              // the terminal opening), which is exactly when it should feel instant.
+              visible.map((project, i) => (
                 <motion.li
                   key={project.id}
-                  layout
-                  initial={{ opacity: 0, y: 12 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
-                  transition={{
-                    default: { duration: 0.22, delay: Math.min(i, MAX_STAGGERED) * STAGGER_S },
-                    layout: { type: 'spring', stiffness: 420, damping: 36 },
-                  }}
+                  transition={{ duration: 0.18, delay: Math.min(i, MAX_STAGGERED) * STAGGER_S }}
                 >
                   <ProjectCard project={project} worldsById={worldsById} now={now} index={i} />
                 </motion.li>
               ))}
-            </AnimatePresence>
-          )}
         </ul>
       )}
     </div>

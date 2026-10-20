@@ -4,6 +4,7 @@
 import { create } from 'zustand';
 import type { Id, TerminalInfo } from '../../shared/types';
 import { usesBuiltInTerminal } from '../../shared/terminals';
+import { measureTerminalSize } from '../components/terminal/terminal-size';
 import { errorMessage, guard, useHud } from './useHud';
 
 export interface TerminalTab {
@@ -64,7 +65,10 @@ export const useTerminals = create<TerminalsState>()((set, get) => ({
 
   async newTab(projectId) {
     try {
-      const info = await window.api.terminalCreate(projectId);
+      const info = await window.api.terminalCreate(
+        projectId,
+        measureTerminalSize(...bodySize(get().width)),
+      );
       set((s) => ({ tabs: [...s.tabs, { info, exited: false }], activeId: info.id, open: true }));
     } catch (err) {
       useHud.getState().showToast(errorMessage(err), 'error');
@@ -121,6 +125,16 @@ export async function pickUpProject(id: Id): Promise<void> {
   if (settings.pickUpTerminal && project?.path && usesBuiltInTerminal(settings.terminal)) {
     await useTerminals.getState().openFor(id);
   }
+}
+
+/**
+ * The area a terminal tab fills: the panel's body when it's on screen, otherwise what it will
+ * be once shown (the panel's width less its border, the window's height less the tab bar).
+ */
+function bodySize(panelWidth: number): [number, number] {
+  const body = document.querySelector<HTMLElement>('[data-terminal-body]');
+  if (body && body.offsetWidth > 0) return [body.clientWidth, body.clientHeight];
+  return [panelWidth - 1, window.innerHeight - 56];
 }
 
 function readWidth(): number {
