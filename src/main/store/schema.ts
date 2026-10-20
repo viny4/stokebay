@@ -162,4 +162,11 @@ export const MIGRATIONS: readonly string[] = [
     VALUES ('delete', old.seq, old.title, old.body);
   END;
   `,
+
+  // 2: what Git showed when a project was paused, and an optional "remind me" time.
+  `
+  ALTER TABLE pauses ADD COLUMN git_context TEXT;
+  ALTER TABLE pauses ADD COLUMN remind_at INTEGER;
+  CREATE INDEX pauses_remind ON pauses (remind_at) WHERE remind_at IS NOT NULL;
+  `,
 ];

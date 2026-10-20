@@ -13,6 +13,7 @@ import {
   type CanvasNode,
   type Entry,
   type GitInfo,
+  type GitWorkState,
   type Id,
   type Module,
   type Part,
@@ -407,14 +408,17 @@ export class SqliteStore implements ProjectRepository {
 
   private insertPause(p: Pause): void {
     this.run(
-      `INSERT INTO pauses (id, project_id, paused_at, resumed_at, where_i_stopped, next_step)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO pauses (id, project_id, paused_at, resumed_at, where_i_stopped, next_step,
+                           git_context, remind_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       p.id,
       p.projectId,
       p.pausedAt,
       p.resumedAt ?? null,
       p.whereIStopped,
       p.nextStep,
+      p.gitContext ? JSON.stringify(p.gitContext) : null,
+      p.remindAt ?? null,
     );
   }
 
@@ -618,7 +622,13 @@ export class SqliteStore implements ProjectRepository {
 
       addPause: (input) => {
         this.requireProject(input.projectId);
-        const pause: Pause = { ...input, id: newId(), resumedAt: null };
+        const pause: Pause = {
+          gitContext: null,
+          remindAt: null,
+          ...input,
+          id: newId(),
+          resumedAt: null,
+        };
         this.insertPause(pause);
         return pause;
       },
@@ -862,6 +872,8 @@ function toPause(r: Row): Pause {
     resumedAt: num(r.resumed_at),
     whereIStopped: String(r.where_i_stopped),
     nextStep: String(r.next_step),
+    gitContext: json<GitWorkState>(r.git_context),
+    remindAt: num(r.remind_at),
   };
 }
 

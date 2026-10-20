@@ -160,7 +160,18 @@ export const useHud = create<HudState>()((set, get) => {
     dialog: { kind: 'none' },
     toast: null,
     blueprints: [],
-    settings: { onboarded: true, backupFolder: null, lastExternalBackupAt: null, editor: 'vscode' },
+    settings: {
+      onboarded: true,
+      backupFolder: null,
+      lastExternalBackupAt: null,
+      editor: 'vscode',
+      autoPauseDays: 30,
+      captureShortcut: null,
+      lastCaptureProjectId: null,
+      pickUpTerminal: true,
+      pickUpLinks: false,
+      lastReviewAt: null,
+    },
     labProjectId: null,
     lab: null,
 
@@ -349,7 +360,14 @@ export function guard(action: () => Promise<unknown>): void {
 
 // Git refreshes happen in the background; main pushes the new list when something changed.
 export function subscribeToMain(): () => void {
-  return window.api.onProjectsChanged((projects) => {
+  const offSettings = window.api.onSettingsChanged((settings) => useHud.setState({ settings }));
+  // E.g. a pause reminder was clicked: show that project.
+  const offFocus = window.api.onFocusProject((id) => {
+    const { view, exitLab, openProject } = useHud.getState();
+    if (view === 'lab') exitLab();
+    guard(() => openProject(id));
+  });
+  const offProjects = window.api.onProjectsChanged((projects) => {
     useHud.setState({ projects });
     const { selectedId } = useHud.getState();
     if (selectedId) {
@@ -361,4 +379,9 @@ export function subscribeToMain(): () => void {
         .catch(() => undefined);
     }
   });
+  return () => {
+    offSettings();
+    offFocus();
+    offProjects();
+  };
 }

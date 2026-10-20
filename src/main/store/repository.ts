@@ -21,6 +21,22 @@ import type {
 
 export const STORE_VERSION = 4;
 
+/** Settings for existing data; a brand-new install also has `onboarded: false`. */
+export function defaultSettings(): AppSettings {
+  return {
+    onboarded: true,
+    backupFolder: null,
+    lastExternalBackupAt: null,
+    editor: 'vscode',
+    autoPauseDays: 30,
+    captureShortcut: 'CommandOrControl+Shift+Space',
+    lastCaptureProjectId: null,
+    pickUpTerminal: true,
+    pickUpLinks: false,
+    lastReviewAt: null,
+  };
+}
+
 export interface StoreData {
   version: typeof STORE_VERSION;
   settings: AppSettings;
@@ -121,7 +137,11 @@ export interface RepositoryTx {
   /** Permanent: also removes everything that belongs to the project. */
   deleteProject(id: Id): void;
   setGitInfo(id: Id, git: GitInfo | null): void;
-  addPause(input: Omit<Pause, 'id' | 'resumedAt'>): Pause;
+  /** Git context and reminder are optional here (older callers and imports have neither). */
+  addPause(
+    input: Omit<Pause, 'id' | 'resumedAt' | 'gitContext' | 'remindAt'> &
+      Partial<Pick<Pause, 'gitContext' | 'remindAt'>>,
+  ): Pause;
   closePause(id: Id, resumedAt: EpochMs): Pause;
   addEntry(input: NewEntry): Entry;
   updateEntry(id: Id, changes: EntryChanges): Entry;

@@ -18,6 +18,7 @@ import { createLogger } from '../logging/logger';
 import { newId } from './ids';
 import { migrateStoreData } from './migrate';
 import {
+  defaultSettings,
   STORE_VERSION,
   type NewProject,
   type ProjectChanges,
@@ -35,12 +36,7 @@ export const BACKUP_COUNT = 5;
 export function emptyStoreData(): StoreData {
   return {
     version: STORE_VERSION,
-    settings: {
-      onboarded: false,
-      backupFolder: null,
-      lastExternalBackupAt: null,
-      editor: 'vscode',
-    },
+    settings: { ...defaultSettings(), onboarded: false },
     worlds: [],
     projects: [],
     pauses: [],
@@ -355,7 +351,13 @@ export class JsonStore implements ProjectRepository {
 
       addPause: (input) => {
         this.requireProject(input.projectId);
-        const pause: Pause = { ...input, id: newId(), resumedAt: null };
+        const pause: Pause = {
+          gitContext: null,
+          remindAt: null,
+          ...input,
+          id: newId(),
+          resumedAt: null,
+        };
         this.data.pauses.push(pause);
         return pause;
       },

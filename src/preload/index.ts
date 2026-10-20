@@ -2,7 +2,7 @@
 // no ipcRenderer, no Node. Runs sandboxed with contextIsolation.
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron';
 import { CHANNELS, type HudApi, type IpcResult } from '../shared/ipc';
-import type { ProjectSummary } from '../shared/types';
+import type { AppSettings, ProjectSummary } from '../shared/types';
 
 async function invoke<T>(channel: string, payload?: unknown): Promise<T> {
   const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>;
@@ -74,6 +74,23 @@ const api: HudApi = {
   deleteWorld: (id) => invoke(CHANNELS.worldsDelete, { id }),
   setEditor: (editor) => invoke(CHANNELS.settingsSetEditor, { editor }),
   revealDataFolder: () => invoke(CHANNELS.appRevealData),
+  updateSettings: (input) => invoke(CHANNELS.settingsUpdate, input),
+  onSettingsChanged: (listener) => {
+    const wrapped = (_event: IpcRendererEvent, settings: AppSettings) => listener(settings);
+    ipcRenderer.on(CHANNELS.settingsChanged, wrapped);
+    return () => ipcRenderer.removeListener(CHANNELS.settingsChanged, wrapped);
+  },
+  workState: (id) => invoke(CHANNELS.projectsWorkState, { id }),
+  pickUp: (id) => invoke(CHANNELS.projectsPickUp, { id }),
+  onFocusProject: (listener) => {
+    const wrapped = (_event: IpcRendererEvent, id: string) => listener(id);
+    ipcRenderer.on(CHANNELS.projectsFocus, wrapped);
+    return () => ipcRenderer.removeListener(CHANNELS.projectsFocus, wrapped);
+  },
+  captureSave: (input) => invoke(CHANNELS.captureSave, input),
+  captureClose: () => invoke(CHANNELS.captureClose),
+  reviewKeep: (id) => invoke(CHANNELS.reviewKeep, { id }),
+  reviewFinish: () => invoke(CHANNELS.reviewFinish),
 };
 
 contextBridge.exposeInMainWorld('api', api);

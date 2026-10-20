@@ -63,6 +63,8 @@ export const pauseInput = z.object({
   id,
   whereIStopped: z.string().trim().max(4000),
   nextStep: z.string().trim().max(4000),
+  // Optional "remind me" time. The Git context is read by main, never sent from the renderer.
+  remindAt: z.number().int().positive().nullable().optional(),
 });
 
 export const addNoteInput = z.object({
@@ -282,4 +284,26 @@ export const updateWorldInput = z.object({
     .optional(),
 });
 export const setEditorInput = z.object({ editor: z.enum(EDITOR_IDS) });
+
+/** Settings the renderer may change directly (the rest are set by their own flows). */
+export const updateSettingsInput = z.object({
+  autoPauseDays: z.number().int().min(0).max(365).optional(),
+  // An Electron accelerator such as "CommandOrControl+Shift+Space"; main checks it registers.
+  captureShortcut: z
+    .string()
+    .max(60)
+    .regex(/^[A-Za-z0-9+]+$/, 'Pick a shortcut like ⌘⇧Space.')
+    .nullable()
+    .optional(),
+  pickUpTerminal: z.boolean().optional(),
+  pickUpLinks: z.boolean().optional(),
+});
+export type UpdateSettingsInput = z.infer<typeof updateSettingsInput>;
+
+export const captureSaveInput = z.object({
+  projectId: id,
+  text: z.string().trim().min(1, 'Write something first.').max(20_000),
+});
+export type CaptureSaveInput = z.infer<typeof captureSaveInput>;
+
 export type UpdateWorldInput = z.infer<typeof updateWorldInput>;

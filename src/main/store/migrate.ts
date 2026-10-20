@@ -4,7 +4,7 @@
 //   v2 → v3: app settings (an existing file counts as already set up).
 //   v3 → v4: worlds still on the old neon default colours get the calmer version of the same
 //            colour. Colours the user picked themselves are left alone.
-import { STORE_VERSION, type StoreData } from './repository';
+import { defaultSettings, STORE_VERSION, type StoreData } from './repository';
 
 type Raw = Record<string, unknown>;
 
@@ -52,10 +52,7 @@ export function migrateStoreData(raw: unknown): StoreData | null {
   }));
   // Someone upgrading already has data, so first-run setup would only get in their way.
   const settings = {
-    onboarded: true,
-    backupFolder: null,
-    lastExternalBackupAt: null,
-    editor: 'vscode',
+    ...defaultSettings(),
     ...(isObject(raw.settings) ? raw.settings : {}),
   };
 
@@ -66,6 +63,7 @@ export function migrateStoreData(raw: unknown): StoreData | null {
     worlds,
     projects,
     entries,
+    pauses: array(raw.pauses).map((p) => ({ gitContext: null, remindAt: null, ...p })),
     modules: array(raw.modules),
     parts: array(raw.parts),
     nodes: array(raw.nodes),

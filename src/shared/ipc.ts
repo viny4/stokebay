@@ -1,6 +1,7 @@
 import type {
   AddLinkInput,
   AddNoteInput,
+  CaptureSaveInput,
   CreateProjectInput,
   IgniteInput,
   LabAddChecklistInput,
@@ -21,6 +22,7 @@ import type {
   PauseInput,
   ScanImportInput,
   UpdateProjectInput,
+  UpdateSettingsInput,
   UpdateWorldInput,
 } from './schemas';
 import type { EditorId } from './editors';
@@ -30,9 +32,11 @@ import type {
   BackupStatus,
   Blueprint,
   BootstrapData,
+  GitWorkState,
   Id,
   LabData,
   LaunchResult,
+  PickUpResult,
   ProjectDetail,
   ProjectSummary,
   RendererErrorReport,
@@ -100,6 +104,17 @@ export const CHANNELS = {
   searchQuery: 'search:query',
   areasActivity: 'areas:activity',
   appOpenPrivacySettings: 'app:openPrivacySettings',
+  settingsUpdate: 'settings:update',
+  projectsWorkState: 'projects:workState',
+  projectsPickUp: 'projects:pickUp',
+  captureSave: 'capture:save',
+  captureClose: 'capture:close',
+  reviewKeep: 'review:keep',
+  reviewFinish: 'review:finish',
+  /** Pushed from main when settings change outside a renderer request (e.g. a review finished). */
+  settingsChanged: 'settings:changed',
+  /** Pushed from main: open this project (e.g. a pause reminder notification was clicked). */
+  projectsFocus: 'projects:focus',
 } as const;
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };
@@ -182,6 +197,27 @@ export interface HudApi {
   setEditor(editor: EditorId): Promise<AppSettings>;
   /** Shows Stokebay's data folder in Finder. */
   revealDataFolder(): Promise<void>;
+  /** Auto-pause, quick capture shortcut, Pick up options. */
+  updateSettings(input: UpdateSettingsInput): Promise<AppSettings>;
+  onSettingsChanged(listener: (settings: AppSettings) => void): () => void;
+
+  /** What Git shows about unfinished work in the project's folder; null without Git. */
+  workState(id: Id): Promise<GitWorkState | null>;
+  /** Resumes the project if paused, then opens the editor (and terminal/links per settings). */
+  pickUp(id: Id): Promise<PickUpResult>;
+  /** Main asks the window to open a project (e.g. a reminder notification was clicked). */
+  onFocusProject(listener: (id: Id) => void): () => void;
+
+  // The quick capture window.
+  /** Saves the text as a note on the project and hides the capture window. */
+  captureSave(input: CaptureSaveInput): Promise<void>;
+  captureClose(): Promise<void>;
+
+  // Weekly review.
+  /** "Keep going": counts as activity, so the project stops looking cold. */
+  reviewKeep(id: Id): Promise<ProjectSummary>;
+  /** Records that the review is done (it's offered again a week later). */
+  reviewFinish(): Promise<AppSettings>;
 }
 
 /** Address the renderer uses to show a Lab image; served only from the app's media. */

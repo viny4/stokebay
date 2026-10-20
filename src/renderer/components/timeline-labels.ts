@@ -80,6 +80,12 @@ export function timelineLabel(event: ActivityEvent, entries: ReadonlyMap<Id, Ent
       return 'Removed something from the Lab';
     case 'opened_in_editor':
       return 'Opened in the editor';
+    case 'commit_detected': {
+      const count = typeof event.payload.count === 'number' ? event.payload.count : 1;
+      return count === 1 ? 'New commit' : `${count} new commits`;
+    }
+    case 'project_reviewed':
+      return 'Weekly review: keep going';
     default: {
       // Keeps the switch exhaustive: a new event type fails typecheck until it gets a label.
       const unknown: never = event.type;

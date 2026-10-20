@@ -39,9 +39,10 @@ import {
   scanImportInput,
   setEditorInput,
   updateProjectInput,
+  updateSettingsInput,
   updateWorldInput,
 } from '../../shared/schemas';
-import type { ScanCandidate, ScanResult } from '../../shared/types';
+import type { AppSettings, ScanCandidate, ScanResult } from '../../shared/types';
 import { createLogger } from '../logging/logger';
 import { getBlueprint, listBlueprints } from '../services/blueprints';
 import type { GitRefresher } from '../services/git';
@@ -63,6 +64,8 @@ export interface HandlerDeps {
   backups: BackupController;
   git: GitRefresher;
   getWindow: () => BrowserWindow | null;
+  /** Runs after settings change (e.g. re-registers the capture shortcut, re-checks auto-pause). */
+  onSettingsChanged?: (settings: AppSettings, previous: AppSettings) => void;
 }
 
 export function registerIpcHandlers({
@@ -72,6 +75,7 @@ export function registerIpcHandlers({
   backups,
   git,
   getWindow,
+  onSettingsChanged,
 }: HandlerDeps): void {
   // Import is only allowed for folders the last scan actually found, so the renderer can't
   // smuggle in arbitrary paths.
@@ -318,6 +322,23 @@ export function registerIpcHandlers({
   handle(CHANNELS.backupDisable, emptyInput, () => backups.disable());
   handle(CHANNELS.backupNow, emptyInput, () => backups.backupNow());
   handle(CHANNELS.backupRestore, backupRestoreInput, ({ day }) => backups.restore(day));
+
+  handle(CHANNELS.settingsUpdate, updateSettingsInput, async (input) => {
+    const previous = service.bootstrap().settings;
+    const settings = await service.updateSettings(input);
+    onSettingsChanged?.(settings, previous);
+    return settings;
+  });
+
+  // ---- Git tracking (commits, auto-pause) ----
+
+  // ---- Pause notes and reminders ----
+
+  // ---- Pick up ----
+
+  // ---- Quick capture ----
+
+  // ---- Weekly review ----
 
   ipcMain.on(CHANNELS.logRendererError, (event, raw: unknown) => {
     if (!isTrustedSender(event)) return;

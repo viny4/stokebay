@@ -3,6 +3,7 @@ import started from 'electron-squirrel-startup';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { CHANNELS } from '../shared/ipc';
+import type { AppSettings } from '../shared/types';
 import { BackupController } from './backup-controller';
 import { registerIpcHandlers } from './ipc/handlers';
 import { createLogger, enableFileLogging, setLogLevel } from './logging/logger';
@@ -111,7 +112,24 @@ if (!app.requestSingleInstanceLock()) {
     });
     const media = new MediaStore(path.join(dataDir, 'media'));
     const lab = new LabService(store, service, media);
-    registerIpcHandlers({ service, lab, media, backups, git, getWindow: () => mainWindow });
+    // Features that react to settings changes add themselves here (capture shortcut, auto-pause).
+    const settingsListeners: ((settings: AppSettings, previous: AppSettings) => void)[] = [];
+    registerIpcHandlers({
+      service,
+      lab,
+      media,
+      backups,
+      git,
+      getWindow: () => mainWindow,
+      onSettingsChanged: (settings, previous) =>
+        settingsListeners.forEach((listener) => listener(settings, previous)),
+    });
+
+    // ---- Git tracking (commits, auto-pause) ----
+
+    // ---- Pause reminders ----
+
+    // ---- Quick capture ----
 
     protocol.handle('hud-media', async (request) => {
       const url = new URL(request.url);

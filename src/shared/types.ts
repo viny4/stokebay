@@ -61,6 +61,17 @@ export interface Project {
   git: GitInfo | null;
 }
 
+/** What Git shows about unfinished work in a project folder, used to pre-fill the pause note. */
+export interface GitWorkState {
+  branch: string | null;
+  lastCommitAt: EpochMs | null;
+  lastCommitMsg: string | null;
+  /** Uncommitted (changed or new) files, relative to the project folder; at most 20. */
+  changedFiles: string[];
+  /** All uncommitted files, including any past the 20 listed. */
+  changedCount: number;
+}
+
 export interface Pause {
   id: Id;
   projectId: Id;
@@ -68,6 +79,10 @@ export interface Pause {
   resumedAt: EpochMs | null;
   whereIStopped: string;
   nextStep: string;
+  /** What Git showed when the project was paused; null for projects without Git. */
+  gitContext: GitWorkState | null;
+  /** When to bring the project back with a reminder; null for no reminder. */
+  remindAt: EpochMs | null;
 }
 
 /** Everything a project can hold. Notes and links also show in the detail panel. */
@@ -173,6 +188,8 @@ export const EVENT_TYPES = [
   'zone_added',
   'lab_item_removed',
   'opened_in_editor',
+  'commit_detected',
+  'project_reviewed',
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
@@ -235,6 +252,23 @@ export interface AppSettings {
   lastExternalBackupAt: EpochMs | null;
   /** Which editor "Open in…" uses (see shared/editors.ts). */
   editor: string;
+  /** Pause active projects untouched for this many days; 0 turns it off. */
+  autoPauseDays: number;
+  /** Global shortcut for quick capture (an Electron accelerator); null when off. */
+  captureShortcut: string | null;
+  /** Project the last quick capture went to, offered first next time. */
+  lastCaptureProjectId: Id | null;
+  /** What "Pick up" opens besides the editor. */
+  pickUpTerminal: boolean;
+  pickUpLinks: boolean;
+  /** When the last weekly review was finished. */
+  lastReviewAt: EpochMs | null;
+}
+
+/** What "Pick up" did; `problems` lists anything that couldn't be opened. */
+export interface PickUpResult {
+  project: ProjectSummary;
+  problems: string[];
 }
 
 export interface BackupStatus {

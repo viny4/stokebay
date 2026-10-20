@@ -2,7 +2,7 @@
 // card style is visible. They're flagged `isSample` and can be removed in one click.
 import { DAY, HOUR } from '../../shared/time';
 import type { ActivityEvent, Entry, EventType, Pause, Project, World } from '../../shared/types';
-import { STORE_VERSION, type StoreData } from './repository';
+import { defaultSettings, STORE_VERSION, type StoreData } from './repository';
 
 export const WORLD_PALETTE = [
   '#5b8fd1',
@@ -124,6 +124,8 @@ export function createSampleData(now: number, newId: () => string): StoreData {
     resumedAt: null,
     whereIStopped: 'Move generation works; castling rules are half written.',
     nextStep: 'Finish castling, then add perft tests to check move counts.',
+    gitContext: null,
+    remindAt: null,
   };
   pauses.push(pause);
   event(chess.id, 'project_paused', pausedAt, { pauseId: pause.id });
@@ -140,7 +142,7 @@ export function createSampleData(now: number, newId: () => string): StoreData {
 
   return {
     version: STORE_VERSION,
-    settings: { onboarded: true, backupFolder: null, lastExternalBackupAt: null, editor: 'vscode' },
+    settings: defaultSettings(),
     worlds,
     projects,
     pauses,
