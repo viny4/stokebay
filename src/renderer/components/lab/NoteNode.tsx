@@ -5,7 +5,7 @@ import { saveItem } from './lab-actions';
 import type { NoteNode as NoteNodeType } from './lab-nodes';
 import { LabFrame } from './LabFrame';
 
-const ACCENT = '#38d6ff';
+const ACCENT = 'var(--paused)';
 
 function NoteNodeView({ data, selected }: NodeProps<NoteNodeType>) {
   const { entry, autoEdit } = data;
@@ -71,7 +71,7 @@ function NoteNodeView({ data, selected }: NodeProps<NoteNodeType>) {
             placeholder="Title"
             aria-label="Note title"
             maxLength={200}
-            className={`nodrag ${inputClass} py-1 font-hud`}
+            className={`nodrag ${inputClass} py-1 font-medium`}
           />
           <textarea
             ref={bodyRef}
@@ -85,13 +85,13 @@ function NoteNodeView({ data, selected }: NodeProps<NoteNodeType>) {
         </div>
       ) : (
         <div className="px-3 pt-1 pb-3" title="Double-click to edit">
-          {entry.title ? <h3 className="font-hud text-sm text-hud-text">{entry.title}</h3> : null}
+          {entry.title ? <h3 className="font-medium text-sm text-ink">{entry.title}</h3> : null}
           {entry.body ? (
-            <p className="nowheel mt-1 max-h-60 overflow-y-auto text-xs leading-relaxed whitespace-pre-wrap text-hud-muted">
+            <p className="nowheel mt-1 max-h-60 overflow-y-auto text-xs leading-relaxed whitespace-pre-wrap text-muted">
               {entry.body}
             </p>
           ) : (
-            <p className="mt-1 text-xs text-hud-muted/60 italic">Double-click to write.</p>
+            <p className="mt-1 text-xs text-muted/60 italic">Double-click to write.</p>
           )}
         </div>
       )}

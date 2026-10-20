@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { STORE_VERSION } from '../src/main/store/repository';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { newId } from '../src/main/store/ids';
@@ -23,7 +24,7 @@ describe('JsonStore', () => {
     const dir = await tempDir();
     await JsonStore.open(dir, { seed: () => createSampleData(NOW, newId) });
     const data = await readData(dir);
-    expect(data.version).toBe(3);
+    expect(data.version).toBe(STORE_VERSION);
     expect(data.projects.length).toBeGreaterThan(0);
     expect(data.projects.every((p: { isSample: boolean }) => p.isSample)).toBe(true);
   });

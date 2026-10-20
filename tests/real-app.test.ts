@@ -57,6 +57,27 @@ describe('first-run setup', () => {
     expect(migrateStoreData(v2)?.settings).toMatchObject({ onboarded: true, backupFolder: null });
   });
 
+  it('moves worlds off the old neon defaults but keeps colours the user picked', () => {
+    const world = (id: string, color: string) => ({
+      id,
+      name: id,
+      color,
+      icon: null,
+      sortOrder: 0,
+    });
+    const v3 = {
+      version: 3,
+      worlds: [world('a', '#38BDF8'), world('b', '#123456')],
+      projects: [],
+      pauses: [],
+      entries: [],
+      events: [],
+    };
+    const upgraded = migrateStoreData(v3);
+    expect(upgraded?.version).toBe(4);
+    expect(upgraded?.worlds.map((w) => w.color)).toEqual(['#5b8fd1', '#123456']);
+  });
+
   it('creates chosen worlds once, adds examples into matching worlds, and finishes setup', async () => {
     const dir = await tempDir();
     const store = await JsonStore.open(dir);

@@ -1,10 +1,9 @@
-// Ignite: the full-screen "new project" flow. The user describes what they want to build, a
-// blueprint is suggested, its modules and checklist assemble on the right, and Ignite creates
-// the project and launches it into the HUD. The plain project dialog stays for editing.
+// Ignite: the full-window "New project" sheet. The user describes what they want to build, a
+// blueprint is suggested, its modules and checklist fill the plan on the right, and creating
+// the project opens it. The plain project dialog stays for editing.
 import { motion, useAnimationControls, useIsPresent, useReducedMotion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { AssemblyBay, LAUNCH_MS } from '../components/ignite/AssemblyBay';
-import { BlueprintGrid } from '../components/ignite/BlueprintGrid';
 import {
   blueprintAssembly,
   buildIgniteInput,
@@ -19,15 +18,10 @@ import { errorMessage, useHud } from '../store/useHud';
 import type { Id } from '../../shared/types';
 
 /** The intro can be skipped (by typing or clicking) only while it is still playing. */
-const INTRO_MS = 900;
+const INTRO_MS = 200;
 
 const FOCUSABLE =
   'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
-
-const panelStyle = {
-  '--frame-color': 'rgb(56 189 248 / 0.42)',
-  '--frame-fill': 'rgb(4 18 38 / 0.88)',
-} as React.CSSProperties;
 
 type Phase = 'edit' | 'saving' | 'launching';
 
@@ -78,10 +72,10 @@ export function Ignite() {
   const busy = phase !== 'edit';
   const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
 
-  // Fade the form in after the grid starts powering up; skipIntro jumps straight to the end.
+  // Fade the form in; skipIntro jumps straight to the end.
   useEffect(() => {
     if (introDone) return;
-    void panel.start({ opacity: 1, y: 0, transition: { delay: 0.3, duration: 0.35 } });
+    void panel.start({ opacity: 1, y: 0, transition: { duration: 0.15 } });
   }, [introDone, panel]);
 
   // Keep focus inside the overlay: anything behind it (top bar, detail panel) stays in the DOM
@@ -165,7 +159,7 @@ export function Ignite() {
       launchTimer.current = setTimeout(
         () => {
           closeDialog();
-          showToast(`${project.title} ignited.`);
+          showToast(`${project.title} created.`);
           void openProject(project.id);
         },
         reduce ? 0 : LAUNCH_MS,
@@ -208,210 +202,182 @@ export function Ignite() {
       ref={root}
       role="dialog"
       aria-modal="true"
-      aria-label="Ignite a new project"
-      className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-[rgb(2_8_20/0.94)] backdrop-blur-sm"
+      aria-labelledby="ignite-title"
+      className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-canvas"
       initial={reduce ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={reduce ? undefined : { opacity: 0, transition: { duration: 0.2 } }}
-      transition={{ duration: 0.25 }}
+      exit={reduce ? undefined : { opacity: 0, transition: { duration: 0.15 } }}
+      transition={{ duration: 0.15 }}
       onKeyDown={onKeyDown}
       onPointerDown={skipIntro}
     >
-      <BlueprintGrid key={introDone ? 'ready' : 'intro'} animate={!introDone} />
-
-      <header className="relative flex items-center gap-5 px-8 pt-6 pb-4">
-        <motion.h2
-          key={introDone ? 'ready' : 'intro'}
-          className="font-display text-3xl font-bold tracking-[0.4em] text-status-active drop-shadow-[0_0_14px_rgb(56_214_255/0.8)]"
-          initial={introDone ? false : { opacity: 0, scale: 1.12 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}
-        >
-          IGNITE
-        </motion.h2>
-        <p aria-hidden className="font-mono text-[11px] tracking-widest text-hud-muted uppercase">
-          Blueprint grid online
-        </p>
+      {/* Leaves room for the macOS traffic lights at the top-left. */}
+      <header className="drag flex h-12 shrink-0 items-center gap-3 border-b border-line pr-4 pl-20">
+        <h2 id="ignite-title" className="text-[15px] font-semibold text-ink">
+          New project
+        </h2>
         <button
           type="button"
           aria-label="Close"
           disabled={busy}
           onClick={closeDialog}
-          className="ml-auto rounded px-2.5 py-1 text-xl leading-none text-hud-muted hover:text-hud-text disabled:opacity-40"
+          className="ml-auto flex h-7 w-7 items-center justify-center rounded-md text-lg leading-none text-muted hover:bg-hover hover:text-ink disabled:opacity-40"
         >
           ×
         </button>
       </header>
 
       <motion.div
-        className="relative flex min-h-0 flex-1 flex-col"
-        initial={introDone ? false : { opacity: 0, y: 12 }}
+        className="flex min-h-0 flex-1 flex-col"
+        initial={introDone ? false : { opacity: 0, y: 6 }}
         animate={panel}
       >
-        <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-6">
-          <div className="mx-auto grid max-w-6xl gap-6 min-[860px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-            <section aria-label="Project" className="hud-frame p-5" style={panelStyle}>
-              <div className="flex flex-col gap-5">
-                <div className="flex flex-col gap-2">
-                  <label
-                    htmlFor="ignite-idea"
-                    className="font-display text-base tracking-[0.12em] text-hud-text"
-                  >
-                    What do you want to build?
-                  </label>
-                  <textarea
-                    id="ignite-idea"
-                    ref={ideaRef}
-                    autoFocus
-                    rows={2}
-                    maxLength={2000}
-                    value={idea}
-                    disabled={busy}
-                    onChange={(e) => {
-                      setIdea(e.target.value);
-                      if (error?.field === 'idea' || (name === null && error?.field === 'title')) {
-                        clearError();
-                      }
-                    }}
-                    placeholder="A weather station that posts the forecast every morning…"
-                    aria-invalid={error?.field === 'idea' ? true : undefined}
-                    className={`${inputClass} resize-none font-hud text-xl leading-snug tracking-wide`}
-                  />
-                </div>
-
-                <Field
-                  label="Project name"
-                  error={error?.field === 'title' ? error.message : null}
-                  hint={name === null ? 'Filled in from your idea until you change it.' : undefined}
-                >
-                  {(id) => (
-                    <div className="flex gap-2">
-                      <input
-                        id={id}
-                        ref={nameRef}
-                        value={title}
-                        maxLength={120}
-                        disabled={busy}
-                        onChange={(e) => {
-                          setName(e.target.value);
-                          if (error?.field === 'title') clearError();
-                        }}
-                        placeholder="Name it"
-                        aria-invalid={error?.field === 'title' ? true : undefined}
-                        className={inputClass}
-                      />
-                      {name !== null ? (
-                        <Button
-                          aria-label="Name it from the idea again"
-                          disabled={busy}
-                          onClick={() => setName(null)}
-                        >
-                          Auto
-                        </Button>
-                      ) : null}
-                    </div>
-                  )}
-                </Field>
-
-                <fieldset className="flex flex-col gap-2" disabled={busy}>
-                  <legend className="mb-1.5 font-hud text-xs uppercase tracking-widest text-hud-muted">
-                    Blueprint
-                  </legend>
-                  <div className="flex flex-wrap gap-2">
-                    {blueprints.map((b) => {
-                      const on = selected?.id === b.id;
-                      const isSuggested = suggested?.id === b.id;
-                      return (
-                        <button
-                          key={b.id}
-                          type="button"
-                          aria-pressed={on}
-                          aria-description={isSuggested ? 'Suggested for your idea' : undefined}
-                          onClick={() => pickBlueprint(b.id)}
-                          className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 font-hud text-sm tracking-wide transition-colors ${
-                            on
-                              ? 'border-status-active/80 bg-status-active/20 text-status-active shadow-[inset_0_0_12px_rgb(56_214_255/0.25)]'
-                              : 'border-hud-line text-hud-muted hover:text-hud-text'
-                          }`}
-                        >
-                          {b.name}
-                          {isSuggested ? (
-                            <motion.span
-                              initial={reduce ? false : { scale: 0.6, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              className="border border-status-done/60 bg-status-done/10 px-1.5 py-px font-mono text-[9px] tracking-widest text-status-done uppercase"
-                            >
-                              suggested
-                            </motion.span>
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p aria-live="polite" className="min-h-5 text-sm text-hud-muted">
-                    {selected?.description}
-                  </p>
-                  {error?.field === 'blueprintId' ? (
-                    <p role="alert" className="text-xs text-red-300">
-                      {error.message}
-                    </p>
-                  ) : null}
-                </fieldset>
-
-                <WorldChips
-                  selected={worldIds}
+        <div className="min-h-0 flex-1 overflow-y-auto px-8 py-8">
+          <div className="mx-auto grid max-w-5xl gap-8 min-[860px]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+            <section aria-label="Project" className="flex flex-col gap-6">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="ignite-idea" className="text-[13px] font-medium text-ink">
+                  What do you want to build?
+                </label>
+                <textarea
+                  id="ignite-idea"
+                  ref={ideaRef}
+                  autoFocus
+                  rows={3}
+                  maxLength={2000}
+                  value={idea}
                   disabled={busy}
-                  onChange={(ids) => {
-                    setWorldIds(ids);
-                    if (error?.field === 'worldIds') clearError();
+                  onChange={(e) => {
+                    setIdea(e.target.value);
+                    if (error?.field === 'idea' || (name === null && error?.field === 'title')) {
+                      clearError();
+                    }
                   }}
+                  placeholder="A weather station that posts the forecast every morning…"
+                  aria-invalid={error?.field === 'idea' ? true : undefined}
+                  className={`${inputClass} resize-none text-base leading-relaxed`}
                 />
-
-                <Field
-                  label="Folder (optional)"
-                  error={error?.field === 'path' ? error.message : null}
-                  hint="Link a code folder for Git info and Open in editor."
-                >
-                  {(id) => (
-                    // The id goes on the group, not the button, so the button keeps its own name.
-                    <div id={id} role="group" aria-label="Folder" className="flex flex-col gap-2">
-                      {path ? (
-                        <code className="block break-all rounded-md border border-hud-line bg-black/30 px-3 py-2 font-mono text-xs text-hud-text">
-                          {path}
-                        </code>
-                      ) : null}
-                      <div className="flex gap-2">
-                        <Button disabled={busy} onClick={() => void chooseFolder()}>
-                          {path ? 'Change folder…' : 'Choose folder…'}
-                        </Button>
-                        {path ? (
-                          <Button
-                            aria-label="Clear folder"
-                            disabled={busy}
-                            onClick={() => setPath(null)}
-                          >
-                            Clear
-                          </Button>
-                        ) : null}
-                      </div>
-                    </div>
-                  )}
-                </Field>
               </div>
+
+              <Field
+                label="Project name"
+                error={error?.field === 'title' ? error.message : null}
+                hint={name === null ? 'Filled in from your idea until you change it.' : undefined}
+              >
+                {(id) => (
+                  <div className="flex gap-2">
+                    <input
+                      id={id}
+                      ref={nameRef}
+                      value={title}
+                      maxLength={120}
+                      disabled={busy}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        if (error?.field === 'title') clearError();
+                      }}
+                      placeholder="Name it"
+                      aria-invalid={error?.field === 'title' ? true : undefined}
+                      className={inputClass}
+                    />
+                    {name !== null ? (
+                      <Button
+                        aria-label="Name it from the idea again"
+                        disabled={busy}
+                        onClick={() => setName(null)}
+                        className="h-auto"
+                      >
+                        Auto
+                      </Button>
+                    ) : null}
+                  </div>
+                )}
+              </Field>
+
+              <fieldset className="flex flex-col gap-2" disabled={busy}>
+                <legend className="mb-1.5 text-[13px] font-medium text-ink">Blueprint</legend>
+                <div className="grid grid-cols-2 gap-2 min-[1100px]:grid-cols-3">
+                  {blueprints.map((b) => {
+                    const on = selected?.id === b.id;
+                    const isSuggested = suggested?.id === b.id;
+                    return (
+                      <button
+                        key={b.id}
+                        type="button"
+                        aria-pressed={on}
+                        aria-description={isSuggested ? 'Suggested for your idea' : undefined}
+                        onClick={() => pickBlueprint(b.id)}
+                        className={`flex min-h-10 flex-col items-start justify-center rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                          on
+                            ? 'border-accent bg-accent/10 font-medium text-ink'
+                            : 'border-line bg-surface text-muted hover:bg-hover hover:text-ink'
+                        }`}
+                      >
+                        <span className="truncate">{b.name}</span>
+                        {isSuggested ? (
+                          <span className="text-[11px] font-normal text-accent">Suggested</span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p aria-live="polite" className="min-h-5 text-xs text-muted">
+                  {selected?.description}
+                </p>
+                {error?.field === 'blueprintId' ? (
+                  <p role="alert" className="text-xs text-danger">
+                    {error.message}
+                  </p>
+                ) : null}
+              </fieldset>
+
+              <WorldChips
+                selected={worldIds}
+                disabled={busy}
+                onChange={(ids) => {
+                  setWorldIds(ids);
+                  if (error?.field === 'worldIds') clearError();
+                }}
+              />
+
+              <Field
+                label="Folder (optional)"
+                error={error?.field === 'path' ? error.message : null}
+                hint="Link a code folder for Git info and Open in editor."
+              >
+                {(id) => (
+                  // The id goes on the group, not the button, so the button keeps its own name.
+                  <div id={id} role="group" aria-label="Folder" className="flex flex-col gap-2">
+                    {path ? (
+                      <code className="selectable block break-all rounded-md border border-line bg-sunken px-3 py-2 font-mono text-xs text-ink">
+                        {path}
+                      </code>
+                    ) : null}
+                    <div className="flex gap-2">
+                      <Button disabled={busy} onClick={() => void chooseFolder()}>
+                        {path ? 'Change folder…' : 'Choose folder…'}
+                      </Button>
+                      {path ? (
+                        <Button
+                          aria-label="Clear folder"
+                          disabled={busy}
+                          onClick={() => setPath(null)}
+                        >
+                          Clear
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+              </Field>
             </section>
 
-            <section
-              aria-label="Assembly bay"
-              className="hud-frame self-start p-5"
-              style={panelStyle}
-            >
+            <section aria-labelledby="ignite-plan" className="panel self-start p-5">
               <div className="mb-4 flex items-baseline justify-between gap-3">
-                <h3 className="font-display text-xs tracking-[0.25em] text-status-active uppercase">
-                  Assembly bay
+                <h3 id="ignite-plan" className="text-[13px] font-semibold text-ink">
+                  Plan
                 </h3>
-                <span className="truncate font-mono text-[11px] text-hud-muted">
-                  {selected ? selected.name : ''}
-                </span>
+                <span className="truncate text-xs text-muted">{selected ? selected.name : ''}</span>
               </div>
               <AssemblyBay
                 assembly={assembly}
@@ -424,28 +390,23 @@ export function Ignite() {
           </div>
         </div>
 
-        <footer className="relative flex items-center gap-3 border-t border-hud-line bg-black/40 px-8 py-3">
+        <footer className="flex items-center gap-2 border-t border-line bg-sidebar px-8 py-3">
           <div className="min-w-0 flex-1">
             {error && !['title', 'path', 'blueprintId'].includes(error.field ?? '') ? (
-              <p role="alert" className="truncate text-sm text-red-300">
+              <p role="alert" className="truncate text-sm text-danger">
                 {error.message}
               </p>
             ) : (
-              <p className="font-mono text-[11px] text-hud-muted">
-                {isMac ? '⌘' : 'Ctrl'} + Enter to ignite · Esc to cancel
+              <p className="text-xs text-muted">
+                {isMac ? '⌘ Enter' : 'Ctrl+Enter'} to create · Esc to cancel
               </p>
             )}
           </div>
           <Button disabled={busy} onClick={closeDialog}>
             Cancel
           </Button>
-          <Button
-            variant="primary"
-            disabled={busy}
-            onClick={() => void submit()}
-            className="px-6 py-2 font-display text-sm tracking-[0.25em] shadow-[0_0_18px_rgb(56_214_255/0.35)]"
-          >
-            {phase === 'edit' ? 'IGNITE ▸' : 'IGNITING…'}
+          <Button variant="primary" disabled={busy} onClick={() => void submit()}>
+            {phase === 'edit' ? 'Create project' : 'Creating…'}
           </Button>
         </footer>
       </motion.div>

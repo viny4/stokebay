@@ -1,6 +1,6 @@
-// The right half of the Ignite screen: the selected blueprint's modules assemble as zone
-// cards, its starter checklist lists below, and the parts bin switch sits at the bottom.
-// On launch the cards collapse into one glowing core card that flies up into the HUD.
+// The "Plan" half of the New project sheet: the selected blueprint's modules as editable rows,
+// its starter checklist below, and the Parts Bin switch at the bottom. While the project is
+// being created the plan fades and a short "Creating …" note is shown.
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRef, useState, type KeyboardEvent } from 'react';
 import {
@@ -9,7 +9,6 @@ import {
   MAX_MODULES,
   MAX_STEP_LENGTH,
   addItem,
-  isBlueprintItem,
   removeItem,
   renameItem,
   type Assembly,
@@ -21,9 +20,9 @@ export const LAUNCH_MS = 950;
 let itemSeq = 0;
 const newItemId = () => `u${++itemSeq}`;
 
-const sectionLabel = 'font-hud text-xs uppercase tracking-widest text-hud-muted';
+const sectionLabel = 'text-[13px] font-medium text-ink';
 const smallButton =
-  'rounded-md border border-dashed border-hud-line px-3 py-1 font-hud text-xs uppercase tracking-wider text-hud-muted transition-colors hover:text-hud-text disabled:cursor-not-allowed disabled:opacity-40';
+  'rounded-md px-2 py-1 text-xs font-medium text-muted transition-colors hover:bg-hover hover:text-ink disabled:cursor-not-allowed disabled:opacity-40';
 
 export function AssemblyBay({
   assembly,
@@ -43,7 +42,7 @@ export function AssemblyBay({
   const addStepRef = useRef<HTMLButtonElement>(null);
 
   if (!assembly) {
-    return <p className="text-sm text-hud-muted">No blueprints are available.</p>;
+    return <p className="text-sm text-muted">No blueprints are available.</p>;
   }
 
   const modules = assembly.modules;
@@ -68,128 +67,91 @@ export function AssemblyBay({
 
   return (
     <div className="relative flex flex-col gap-5">
-      <section aria-labelledby="ignite-modules" className="flex flex-col gap-2.5">
+      <motion.section
+        aria-labelledby="ignite-modules"
+        className="flex flex-col gap-2"
+        animate={{ opacity: launching ? 0 : 1 }}
+        transition={{ duration: reduce ? 0 : 0.15 }}
+      >
         <div className="flex items-baseline justify-between">
           <h3 id="ignite-modules" className={sectionLabel}>
             Modules
           </h3>
-          <span className="font-mono text-[11px] text-hud-muted">
-            {modules.length}/{MAX_MODULES}
+          <span className="text-xs text-muted tabular-nums">
+            {modules.length} of {MAX_MODULES}
           </span>
         </div>
 
-        <ul
-          className={
-            launching
-              ? 'grid min-h-24 place-items-center'
-              : 'grid grid-cols-2 gap-2.5 min-[1200px]:grid-cols-3'
-          }
-        >
-          <AnimatePresence mode="popLayout" initial={!reduce}>
+        <ul className="flex flex-col divide-y divide-line overflow-hidden rounded-md border border-line">
+          <AnimatePresence initial={false}>
             {modules.map((item, i) => (
               <motion.li
                 key={item.id}
                 layout={!reduce}
-                className={`hud-frame hud-frame-sm ${launching ? 'w-56' : 'w-full'}`}
-                style={
-                  {
-                    '--frame-color': launching ? 'rgb(56 214 255 / 0.9)' : 'rgb(56 189 248 / 0.5)',
-                    '--frame-fill': 'rgb(8 34 66 / 0.92)',
-                    // Every card shares one cell while launching, so the layout animation
-                    // slides them together into a single stack.
-                    gridArea: launching ? '1 / 1' : undefined,
-                  } as React.CSSProperties
-                }
-                initial={reduce ? false : { opacity: 0, scale: 0.8, y: 14 }}
-                animate={
-                  launching
-                    ? { opacity: reduce ? 1 : 0, scale: 0.7, y: 0 }
-                    : { opacity: 1, scale: 1, y: 0 }
-                }
-                exit={
-                  reduce ? undefined : { opacity: 0, scale: 0.85, transition: { duration: 0.14 } }
-                }
-                transition={{
-                  type: 'spring',
-                  stiffness: 420,
-                  damping: 30,
-                  opacity: {
-                    duration: launching ? 0.25 : 0.2,
-                    delay: launching ? 0.3 : isBlueprintItem(item) ? 0.05 + i * 0.06 : 0,
-                  },
-                  delay: launching ? 0 : isBlueprintItem(item) ? 0.05 + i * 0.06 : 0,
-                  // Reflowing after a remove or add must not wait for the assembly stagger.
-                  layout: { type: 'spring', stiffness: 420, damping: 34 },
-                }}
+                className="flex items-center gap-2 bg-surface px-2 py-1"
+                initial={reduce ? false : { opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduce ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
+                transition={{ duration: 0.15 }}
               >
-                <div className="flex items-center gap-1.5 px-3 py-2.5">
-                  <span aria-hidden className="font-mono text-[10px] text-status-active/70">
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                  <InlineText
-                    value={item.text}
-                    label={`Module ${i + 1} name`}
-                    maxLength={MAX_MODULE_LENGTH}
-                    autoFocus={focusId === item.id}
-                    onCommit={(text) => update({ modules: renameItem(modules, item.id, text) })}
-                    className="font-hud text-sm tracking-wide text-hud-text"
-                  />
-                  <RemoveButton
-                    label={`Remove module ${item.text}`}
-                    onClick={() => remove('modules', item.id)}
-                  />
-                </div>
+                <InlineText
+                  value={item.text}
+                  label={`Module ${i + 1} name`}
+                  maxLength={MAX_MODULE_LENGTH}
+                  autoFocus={focusId === item.id}
+                  onCommit={(text) => update({ modules: renameItem(modules, item.id, text) })}
+                  className="text-sm text-ink"
+                />
+                <RemoveButton
+                  label={`Remove module ${item.text}`}
+                  onClick={() => remove('modules', item.id)}
+                />
               </motion.li>
             ))}
           </AnimatePresence>
         </ul>
 
-        {!launching ? (
-          <div>
-            <button
-              ref={addModuleRef}
-              type="button"
-              className={smallButton}
-              disabled={modules.length >= MAX_MODULES}
-              onClick={() => add('modules')}
-            >
-              + Module
-            </button>
-          </div>
-        ) : null}
-      </section>
+        <div>
+          <button
+            ref={addModuleRef}
+            type="button"
+            className={smallButton}
+            disabled={launching || modules.length >= MAX_MODULES}
+            onClick={() => add('modules')}
+          >
+            + Add module
+          </button>
+        </div>
+      </motion.section>
 
       <motion.section
         aria-labelledby="ignite-checklist"
-        className="flex flex-col gap-2.5"
+        className="flex flex-col gap-2"
         animate={{ opacity: launching ? 0 : 1 }}
-        transition={{ duration: reduce ? 0 : 0.2 }}
+        transition={{ duration: reduce ? 0 : 0.15 }}
       >
         <div className="flex items-baseline justify-between">
           <h3 id="ignite-checklist" className={sectionLabel}>
             Starter checklist
           </h3>
-          <span className="font-mono text-[11px] text-hud-muted">
-            {checklist.length}/{MAX_CHECKLIST}
+          <span className="text-xs text-muted tabular-nums">
+            {checklist.length} of {MAX_CHECKLIST}
           </span>
         </div>
-        <ul className="flex flex-col gap-1">
-          <AnimatePresence initial={!reduce}>
+        <ul className="flex flex-col">
+          <AnimatePresence initial={false}>
             {checklist.map((item, i) => (
               <motion.li
                 key={item.id}
-                className="flex items-center gap-2 rounded-md border border-hud-line/70 bg-black/25 px-2.5 py-1.5"
-                initial={reduce ? false : { opacity: 0, x: 18 }}
-                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-2.5 rounded-md px-1 py-0.5 hover:bg-hover"
+                initial={reduce ? false : { opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
                 exit={reduce ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
-                transition={{
-                  duration: 0.22,
-                  delay: isBlueprintItem(item) ? 0.2 + i * 0.05 : 0,
-                }}
+                transition={{ duration: 0.15 }}
               >
                 <span
                   aria-hidden
-                  className="h-3 w-3 shrink-0 border border-status-active/60 bg-status-active/5"
+                  className="h-3.5 w-3.5 shrink-0 rounded-[4px] border border-line-strong bg-surface"
                 />
                 <InlineText
                   value={item.text}
@@ -197,7 +159,7 @@ export function AssemblyBay({
                   maxLength={MAX_STEP_LENGTH}
                   autoFocus={focusId === item.id}
                   onCommit={(text) => update({ checklist: renameItem(checklist, item.id, text) })}
-                  className="text-sm text-hud-text"
+                  className="text-sm text-ink"
                 />
                 <RemoveButton
                   label={`Remove step ${item.text}`}
@@ -215,21 +177,21 @@ export function AssemblyBay({
             disabled={launching || checklist.length >= MAX_CHECKLIST}
             onClick={() => add('checklist')}
           >
-            + Step
+            + Add step
           </button>
         </div>
       </motion.section>
 
       <motion.div
-        className="flex items-center justify-between gap-4 rounded-md border border-hud-line bg-black/25 px-3 py-2.5"
+        className="flex items-center justify-between gap-4 border-t border-line pt-4"
         animate={{ opacity: launching ? 0 : 1 }}
-        transition={{ duration: reduce ? 0 : 0.2 }}
+        transition={{ duration: reduce ? 0 : 0.15 }}
       >
         <div>
-          <p id="ignite-parts-label" className="font-hud text-sm tracking-wide text-hud-text">
+          <p id="ignite-parts-label" className="text-sm font-medium text-ink">
             Parts Bin
           </p>
-          <p className="text-xs text-hud-muted">Track parts, costs and where to buy them.</p>
+          <p className="text-xs text-muted">Track parts, costs and where to buy them.</p>
         </div>
         <button
           type="button"
@@ -238,19 +200,15 @@ export function AssemblyBay({
           aria-labelledby="ignite-parts-label"
           disabled={launching}
           onClick={() => update({ partsBin: !assembly.partsBin })}
-          className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
-            assembly.partsBin
-              ? 'border-status-active/70 bg-status-active/25'
-              : 'border-hud-line bg-black/40'
+          className={`relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors ${
+            assembly.partsBin ? 'bg-accent' : 'bg-line-strong'
           }`}
         >
           <motion.span
             aria-hidden
-            className={`absolute top-0.5 left-0.5 block h-4 w-4 rounded-full ${
-              assembly.partsBin ? 'bg-status-active shadow-[0_0_8px_#38d6ff]' : 'bg-hud-muted'
-            }`}
-            animate={{ x: assembly.partsBin ? 20 : 0 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+            className="absolute top-[2px] left-[2px] block h-[18px] w-[18px] rounded-full bg-surface shadow-card"
+            animate={{ x: assembly.partsBin ? 16 : 0 }}
+            transition={{ duration: reduce ? 0 : 0.15 }}
           />
         </button>
       </motion.div>
@@ -260,34 +218,21 @@ export function AssemblyBay({
   );
 }
 
-/** The single glowing card the modules collapse into; it rises and leaves the screen. */
+/** A short confirmation shown over the plan while the new project is being opened. */
 function LaunchCore({ title, reduce }: { title: string; reduce: boolean }) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center pt-6">
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
       <motion.div
-        className="hud-frame w-64 drop-shadow-[0_0_28px_rgb(56_214_255/0.85)]"
-        style={
-          {
-            '--frame-color': 'rgb(56 214 255 / 0.95)',
-            '--frame-fill': 'rgb(10 48 88 / 0.96)',
-          } as React.CSSProperties
-        }
-        initial={reduce ? false : { opacity: 0, scale: 0.6, y: 0 }}
-        animate={
-          reduce
-            ? { opacity: 1 }
-            : { opacity: [0, 1, 1, 0], scale: [0.6, 1.04, 1, 0.92], y: [0, 0, 0, -720] }
-        }
-        transition={{ duration: 0.65, delay: 0.25, times: [0, 0.3, 0.55, 1], ease: 'easeIn' }}
+        role="status"
+        className="flex items-center gap-2.5 rounded-lg border border-line bg-raised px-4 py-3 shadow-pop"
+        initial={reduce ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.15, delay: reduce ? 0 : 0.1 }}
       >
-        <div className="px-5 py-4 text-center">
-          <p className="font-hud text-[11px] uppercase tracking-[0.3em] text-status-active/80">
-            Ignition
-          </p>
-          <p className="mt-1 truncate font-display text-sm tracking-[0.12em] text-hud-text">
-            {title}
-          </p>
-        </div>
+        <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-status-active" />
+        <p className="max-w-56 truncate text-sm text-ink">
+          Creating <span className="font-medium">{title}</span>
+        </p>
       </motion.div>
     </div>
   );
@@ -299,7 +244,7 @@ function RemoveButton({ label, onClick }: { label: string; onClick: () => void }
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="ml-auto shrink-0 rounded px-1.5 text-base leading-none text-hud-muted hover:text-red-300"
+      className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-base leading-none text-muted hover:bg-hover hover:text-ink"
     >
       ×
     </button>
@@ -372,7 +317,7 @@ function InlineText({
         if (!draft.trim()) setDraft(value);
       }}
       onKeyDown={onKeyDown}
-      className={`min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-hud-line focus:border-status-active/60 focus:bg-black/30 focus:outline-none ${className}`}
+      className={`min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 focus:border-accent focus:bg-surface focus:outline-none ${className}`}
     />
   );
 }

@@ -63,24 +63,24 @@ export function WorldsStep({
   const count = picks.selected.length;
 
   return (
-    <section aria-labelledby="onboarding-worlds-title" className="flex flex-col gap-6 py-6">
-      <div className="flex flex-col gap-2">
+    <section aria-labelledby="onboarding-worlds-title" className="flex flex-col gap-6 py-10">
+      <div className="flex flex-col gap-1.5">
         <h1
           id="onboarding-worlds-title"
           ref={headingRef}
           tabIndex={-1}
-          className="font-display text-2xl tracking-[0.12em] text-hud-text focus:outline-none sm:text-3xl"
+          className="text-2xl font-semibold tracking-tight text-ink focus:outline-none"
         >
           What do you make?
         </h1>
-        <p className="max-w-2xl font-hud text-lg leading-snug tracking-wide text-hud-muted">
-          Pick the kinds of things you work on. Each one becomes a <em>world</em>, a branch your
-          projects grow from.
+        <p className="max-w-xl text-sm leading-relaxed text-muted">
+          Pick the kinds of things you work on. Each one becomes a world: a group your projects
+          belong to.
         </p>
       </div>
 
-      <div className="hud-frame flex flex-col gap-5 p-6" style={panelStyle}>
-        <div role="group" aria-label="Worlds" className="flex flex-wrap gap-2.5">
+      <div className="panel flex flex-col gap-5 p-5" style={panelStyle}>
+        <div role="group" aria-label="Worlds" className="flex flex-wrap gap-2">
           {chipNames(picks).map((name) => {
             const on = isSelected(picks, name);
             return (
@@ -89,19 +89,19 @@ export function WorldsStep({
                 type="button"
                 aria-pressed={on}
                 disabled={busy}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => apply(toggleWorld(picks, name))}
-                className={`inline-flex items-center gap-2 rounded-md border px-3.5 py-2 font-hud text-base tracking-wide transition-colors disabled:opacity-40 ${
+                className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-[13px] font-medium transition-colors disabled:opacity-40 ${
                   on
-                    ? 'border-status-active/80 bg-status-active/20 text-status-active shadow-[inset_0_0_12px_rgb(56_214_255/0.25)]'
-                    : 'border-hud-line text-hud-muted hover:border-status-active/40 hover:text-hud-text'
+                    ? 'border-accent bg-accent/10 text-ink'
+                    : 'border-line text-muted hover:bg-hover hover:text-ink'
                 }`}
               >
                 {/* A tick as well as colour, so the state doesn't rely on colour alone. */}
                 <span
                   aria-hidden
-                  className={`grid h-3.5 w-3.5 place-items-center border text-[10px] leading-none ${
-                    on ? 'border-status-active bg-status-active text-hud-bg' : 'border-hud-muted/60'
+                  className={`grid h-3.5 w-3.5 place-items-center rounded-full border text-[9px] leading-none ${
+                    on ? 'border-accent bg-accent text-accent-ink' : 'border-line-strong'
                   }`}
                 >
                   {on ? '✓' : ''}
@@ -113,7 +113,7 @@ export function WorldsStep({
         </div>
 
         <div className="max-w-md">
-          <Field label="+ Add your own" error={error}>
+          <Field label="Add your own" error={error}>
             {(id) => (
               <div className="flex gap-2">
                 <input
@@ -138,13 +138,13 @@ export function WorldsStep({
           </Field>
         </div>
 
-        <p className="text-sm text-hud-muted">
-          <span className="font-hud tracking-wider text-hud-text uppercase">
+        <p className="text-xs text-muted">
+          <span className="font-medium text-ink">
             {count === 0 ? 'None picked' : `${count} picked`}
           </span>
           {' · '}
           {count === 0
-            ? 'Picking at least one helps organise your HUD, but you can skip this. '
+            ? 'Picking at least one helps organise your projects, but you can skip this. '
             : ''}
           You can rename, add or remove worlds later.
         </p>

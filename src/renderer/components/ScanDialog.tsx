@@ -98,13 +98,18 @@ export function ScanDialog() {
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.14 }}
           >
-            <p className="text-sm leading-relaxed text-hud-text">
+            <p className="text-sm leading-relaxed text-ink">
               Pick a folder and the app will look for projects inside it: any folder with a{' '}
-              <code className="font-mono text-status-active">.git</code> folder or a{' '}
-              <code className="font-mono text-status-active">package.json</code>, up to 3 levels
-              deep.
+              <code className="rounded bg-sunken px-1 py-0.5 font-mono text-[12px] text-ink">
+                .git
+              </code>{' '}
+              folder or a{' '}
+              <code className="rounded bg-sunken px-1 py-0.5 font-mono text-[12px] text-ink">
+                package.json
+              </code>
+              , up to 3 levels deep.
             </p>
-            <ul className="list-disc space-y-1 pl-5 text-xs text-hud-muted">
+            <ul className="list-disc space-y-1 pl-5 text-xs text-muted">
               <li>Skips node_modules, dist, build, .next, venv and hidden folders.</li>
               <li>A Git repo counts as one project; folders inside it are not listed again.</li>
               <li>Nothing leaves your computer.</li>
@@ -126,8 +131,11 @@ export function ScanDialog() {
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-hud text-xs uppercase tracking-widest text-hud-muted">Scanned</p>
-                <p className="break-all font-mono text-sm text-hud-text" title={result.root}>
+                <p className="text-xs text-muted">Scanned</p>
+                <p
+                  className="selectable mt-0.5 break-all text-sm font-medium text-ink"
+                  title={result.root}
+                >
                   {result.root}
                 </p>
               </div>
@@ -137,15 +145,15 @@ export function ScanDialog() {
             </div>
 
             {result.truncated ? (
-              <p className="rounded-md border border-status-paused/40 bg-status-paused/10 px-3 py-2 text-xs text-status-paused">
+              <p className="rounded-md border border-line bg-sunken px-3 py-2 text-xs text-muted">
                 Stopped early because the folder is very large; pick a smaller folder to see
                 everything.
               </p>
             ) : null}
 
             {result.candidates.length === 0 ? (
-              <p className="text-sm text-hud-muted">
-                No new projects found in <span className="font-mono">{result.root}</span>.
+              <p className="text-sm text-muted">
+                No new projects found in <span className="text-ink">{result.root}</span>.
               </p>
             ) : (
               <CandidateList
@@ -159,7 +167,7 @@ export function ScanDialog() {
             )}
 
             {result.alreadyImported > 0 ? (
-              <p className="text-xs text-hud-muted">
+              <p className="text-xs text-muted">
                 {result.alreadyImported === 1
                   ? '1 folder was already added and is skipped.'
                   : `${result.alreadyImported} folders were already added and are skipped.`}
@@ -168,7 +176,7 @@ export function ScanDialog() {
 
             {result.candidates.length > 0 && worlds.length > 0 ? (
               <fieldset className="flex flex-col gap-2">
-                <legend className="mb-2 font-hud text-xs uppercase tracking-widest text-hud-muted">
+                <legend className="mb-2 text-[13px] font-semibold text-ink">
                   Add to worlds (optional)
                 </legend>
                 <div className="flex flex-wrap gap-2">
@@ -181,10 +189,10 @@ export function ScanDialog() {
                         aria-pressed={on}
                         disabled={disabled}
                         onClick={() => setWorldIds((s) => toggle(s, world.id))}
-                        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors disabled:opacity-40 ${
+                        className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition-colors disabled:opacity-40 ${
                           on
-                            ? 'border-status-active/60 bg-status-active/15 text-hud-text'
-                            : 'border-hud-line text-hud-muted hover:text-hud-text'
+                            ? 'border-accent bg-accent/10 text-ink'
+                            : 'border-line text-muted hover:bg-hover hover:text-ink'
                         }`}
                       >
                         <span
@@ -197,7 +205,7 @@ export function ScanDialog() {
                     );
                   })}
                 </div>
-                <p className="text-xs text-hud-muted">Applied to every imported project.</p>
+                <p className="text-xs text-muted">Applied to every imported project.</p>
               </fieldset>
             ) : null}
           </motion.div>
@@ -205,7 +213,7 @@ export function ScanDialog() {
       </AnimatePresence>
 
       {error ? (
-        <p role="alert" className="mt-4 text-xs text-red-300">
+        <p role="alert" className="mt-4 text-xs text-danger">
           {error}
         </p>
       ) : null}
@@ -233,19 +241,19 @@ function CandidateList({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <p className="font-hud text-xs uppercase tracking-widest text-hud-muted">
+        <p className="text-xs text-muted">
           Found {count} {count === 1 ? 'project' : 'projects'} · {checked} selected
         </p>
         <div className="flex gap-1">
           <Button
-            className="px-2 py-0.5 text-xs"
+            className="h-7 px-2 text-xs"
             onClick={onAll}
             disabled={disabled || checked === count}
           >
             Select all
           </Button>
           <Button
-            className="px-2 py-0.5 text-xs"
+            className="h-7 px-2 text-xs"
             onClick={onNone}
             disabled={disabled || checked === 0}
           >
@@ -256,29 +264,29 @@ function CandidateList({
       {/* Own scroll area so the root, notes and world chips stay in view on huge scans. */}
       <ul
         aria-label="Projects found"
-        className="max-h-72 divide-y divide-hud-line overflow-y-auto rounded-md border border-hud-line bg-black/20"
+        className="max-h-72 divide-y divide-line overflow-y-auto rounded-lg border border-line bg-surface"
       >
         {result.candidates.map((c) => (
           <li key={c.path}>
             <label
-              className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-white/[0.04]"
+              className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-hover"
               title={c.path}
             >
               <input
                 type="checkbox"
-                className="h-4 w-4 shrink-0 accent-[var(--color-status-active)]"
+                className="h-4 w-4 shrink-0 accent-[var(--accent)]"
                 checked={selected.has(c.path)}
                 disabled={disabled}
                 onChange={() => onToggle(c.path)}
               />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm text-hud-text">{c.name}</span>
-                <span className="block truncate font-mono text-xs text-hud-muted">
+                <span className="block truncate text-sm text-ink">{c.name}</span>
+                <span className="block truncate text-xs text-muted">
                   {relativePath(result.root, c.path)}
                 </span>
               </span>
               {c.hasGit ? (
-                <span className="shrink-0 rounded border border-status-done/40 px-1.5 py-0.5 font-hud text-[10px] uppercase tracking-wider text-status-done">
+                <span className="shrink-0 rounded-full bg-sunken px-2 py-0.5 text-[11px] text-muted">
                   Git
                 </span>
               ) : null}

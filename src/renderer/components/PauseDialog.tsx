@@ -4,10 +4,6 @@ import type { Id } from '../../shared/types';
 import { errorMessage, useHud } from '../store/useHud';
 import { Button, Dialog, Field, inputClass } from './ui';
 
-// Trailing `!` wins over Button's ghost colours regardless of stylesheet order.
-const AMBER_BUTTON =
-  'border-status-paused/60! bg-status-paused/15! text-status-paused! hover:bg-status-paused/25!';
-
 /**
  * Asks for "where I stopped" and "next step" while the context is still fresh; this note is
  * what the resume card shows when the user comes back, possibly months later.
@@ -50,7 +46,7 @@ export function PauseDialog({ projectId }: { projectId: Id }) {
       footer={
         <>
           <Button onClick={closeDialog}>Cancel</Button>
-          <Button type="submit" form={formId} disabled={saving} className={AMBER_BUTTON}>
+          <Button type="submit" form={formId} disabled={saving} variant="primary">
             {saving ? 'Pausing…' : 'Pause project'}
           </Button>
         </>
@@ -70,9 +66,9 @@ export function PauseDialog({ projectId }: { projectId: Id }) {
           }
         }}
       >
-        <p className="text-sm text-hud-muted">
-          Leave a note for future you on <span className="text-hud-text">{title}</span>. It shows up
-          first when you open the project again.
+        <p className="text-sm leading-relaxed text-muted">
+          Leave a note for future you on <span className="font-medium text-ink">{title}</span>. It
+          shows up first when you open the project again.
         </p>
         {/* Dialog focuses the first field, so "Where I stopped" gets focus on open. */}
         <Field label="Where I stopped">
@@ -100,7 +96,7 @@ export function PauseDialog({ projectId }: { projectId: Id }) {
           )}
         </Field>
         {error ? (
-          <p role="alert" className="text-sm text-red-300">
+          <p role="alert" className="text-sm text-danger">
             {error}
           </p>
         ) : null}

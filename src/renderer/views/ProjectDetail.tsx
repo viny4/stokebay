@@ -18,7 +18,7 @@ export function ProjectDetail() {
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  // The resume card only gets its pulse and focus when the panel *opens* on a paused project.
+  // The resume card only gets its entrance and focus when the panel *opens* on a paused project.
   // Pausing again from inside the panel shouldn't steal focus, so this is decided once, from
   // the first detail that arrives (setState during render is React's derived-state pattern).
   const ready = detail !== null && detail.project.id === selectedId;
@@ -28,7 +28,7 @@ export function ProjectDetail() {
   return (
     <motion.aside
       aria-labelledby={headingId}
-      className="fixed top-0 right-0 z-40 flex h-full w-[480px] max-w-full flex-col border-l border-status-active/40 bg-hud-raised shadow-[-24px_0_60px_-20px_rgb(0_0_0/0.8),-2px_0_24px_-6px_rgb(56_214_255/0.45)] backdrop-blur-md"
+      className="fixed top-0 right-0 z-40 flex h-full w-[480px] max-w-full flex-col border-l border-line bg-raised shadow-pop"
       initial={{ x: '100%', opacity: 0.6 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: '100%', opacity: 0.6 }}
@@ -38,11 +38,11 @@ export function ProjectDetail() {
         type="button"
         aria-label="Close project"
         onClick={closeProject}
-        className="absolute top-3 right-3 z-10 rounded px-2 text-xl leading-none text-hud-muted hover:text-hud-text"
+        className="absolute top-3.5 right-3.5 z-10 flex h-7 w-7 items-center justify-center rounded-md text-lg leading-none text-muted hover:bg-hover hover:text-ink"
       >
         ×
       </button>
-      <div className="flex-1 overflow-y-auto px-6 pt-5 pb-10">
+      <div className="flex-1 overflow-y-auto px-6 pt-6 pb-12">
         {ready ? (
           <DetailBody
             detail={detail}
@@ -64,15 +64,15 @@ function Skeleton({ headingId }: { headingId: string }) {
       <h2 id={headingId} className="sr-only">
         Loading project
       </h2>
-      <div className="h-6 w-2/3 rounded bg-white/[0.07]" />
-      <div className="h-3 w-1/3 rounded bg-white/[0.05]" />
+      <div className="h-6 w-2/3 rounded-md bg-sunken" />
+      <div className="h-3 w-1/3 rounded-md bg-sunken" />
       <div className="flex gap-2">
-        <div className="h-7 w-16 rounded bg-white/[0.05]" />
-        <div className="h-7 w-16 rounded bg-white/[0.05]" />
-        <div className="h-7 w-24 rounded bg-white/[0.05]" />
+        <div className="h-8 w-20 rounded-md bg-sunken" />
+        <div className="h-8 w-16 rounded-md bg-sunken" />
+        <div className="h-8 w-24 rounded-md bg-sunken" />
       </div>
-      <div className="h-28 rounded-lg bg-white/[0.04]" />
-      <div className="h-20 rounded-lg bg-white/[0.04]" />
+      <div className="h-28 rounded-lg bg-sunken" />
+      <div className="h-20 rounded-lg bg-sunken" />
     </div>
   );
 }
@@ -109,7 +109,7 @@ function DetailBody({
   }, [resumeProject, showToast, project.id, headingRef]);
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-8">
       {project.status === 'paused' && project.activePause ? (
         <ResumeCard
           pause={project.activePause}
@@ -159,35 +159,31 @@ function Header({
   const archived = project.archivedAt !== null;
 
   return (
-    <header className="space-y-3">
-      <div className="pr-8">
+    <header className="space-y-4">
+      <div className="pr-10">
         <h2
           id={headingId}
           ref={headingRef}
           tabIndex={-1}
-          className="font-display text-lg font-medium tracking-wide text-hud-text focus:outline-none"
+          className="text-xl font-semibold tracking-tight text-ink focus:outline-none"
         >
           {project.title}
         </h2>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
           <StatusBadge status={project.status} />
-          {archived ? (
-            <span className="font-hud text-xs uppercase tracking-wider text-hud-muted">
-              Archived
-            </span>
-          ) : null}
+          {archived ? <span className="text-xs text-muted">Archived</span> : null}
           {worlds.map((w) => (
             <WorldTag key={w.id} world={w} />
           ))}
         </div>
-        <p className="mt-2 font-hud text-xs text-hud-muted">
+        <p className="mt-2.5 text-xs text-muted">
           Last activity{' '}
           <time dateTime={new Date(project.lastActivityAt).toISOString()}>
             {formatRelative(project.lastActivityAt, now)}
           </time>
         </p>
         {project.path ? (
-          <p className="mt-1 truncate font-mono text-xs text-hud-muted" title={project.path}>
+          <p className="selectable mt-0.5 truncate text-xs text-muted" title={project.path}>
             {project.path}
           </p>
         ) : null}
@@ -222,7 +218,7 @@ function Actions({ project }: { project: ProjectSummary }) {
   return (
     <div className="flex flex-wrap gap-2" role="group" aria-label="Project actions">
       <Button variant="primary" onClick={() => guard(() => enterLab(id))}>
-        Enter Lab ▸
+        Open Lab
       </Button>
       <Button onClick={() => openDialog({ kind: 'project', mode: 'edit', projectId: id })}>
         Edit
@@ -244,9 +240,7 @@ function Actions({ project }: { project: ProjectSummary }) {
       </Button>
       {project.path ? (
         <>
-          <Button variant="primary" onClick={() => guard(() => openInEditor(id))}>
-            Open in {editorName}
-          </Button>
+          <Button onClick={() => guard(() => openInEditor(id))}>Open in {editorName}</Button>
           <Button onClick={() => guard(() => revealInFinder(id))}>Reveal in Finder</Button>
         </>
       ) : null}
@@ -257,11 +251,8 @@ function Actions({ project }: { project: ProjectSummary }) {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="space-y-3">
-      <h3
-        id={id}
-        className="font-display text-[11px] tracking-[0.3em] text-status-active/90 uppercase"
-      >
+    <section aria-labelledby={id} className="space-y-3 border-t border-line pt-6">
+      <h3 id={id} className="text-[13px] font-semibold text-ink">
         {title}
       </h3>
       {children}
@@ -275,21 +266,21 @@ function GitSection({ project, now }: { project: ProjectSummary; now: number }) 
   return (
     <Section title="Git">
       {git.error ? (
-        <p className="text-sm text-hud-muted">{git.error}</p>
+        <p className="text-sm text-muted">{git.error}</p>
       ) : (
-        <div className="rounded-md border border-hud-line bg-black/20 px-3 py-2.5 text-sm">
-          <p className="font-hud text-xs text-hud-muted">
-            branch <span className="text-hud-text">{git.branch ?? 'detached'}</span>
+        <div className="rounded-lg border border-line bg-surface px-3.5 py-3 text-sm">
+          <p className="text-xs text-muted">
+            Branch <span className="font-medium text-ink">{git.branch ?? 'detached'}</span>
           </p>
           {git.lastCommitAt !== null ? (
-            <p className="mt-1.5 text-hud-text">
+            <p className="mt-1.5 text-ink">
               {git.lastCommitMsg ?? '(no message)'}
-              <span className="ml-2 font-hud text-xs text-hud-muted">
+              <span className="ml-2 text-xs text-muted">
                 {formatRelative(git.lastCommitAt, now)}
               </span>
             </p>
           ) : (
-            <p className="mt-1.5 text-hud-muted">No commits yet.</p>
+            <p className="mt-1.5 text-muted">No commits yet.</p>
           )}
         </div>
       )}
@@ -391,7 +382,7 @@ function NoteForm({ projectId }: { projectId: string }) {
         )}
       </Field>
       <div className="flex justify-end">
-        <Button type="submit" variant="primary" disabled={saving}>
+        <Button type="submit" disabled={saving}>
           {saving ? 'Adding…' : 'Add note'}
         </Button>
       </div>
@@ -401,17 +392,24 @@ function NoteForm({ projectId }: { projectId: string }) {
 
 const NoteList = ({ notes, now }: { notes: Entry[]; now: number }) =>
   notes.length === 0 ? (
-    <p className="text-sm text-hud-muted">No notes yet.</p>
+    <p className="text-sm text-muted">No notes yet.</p>
   ) : (
     <ul className="space-y-2">
       {notes.map((note) => (
-        <li key={note.id} className="rounded-md border border-hud-line bg-black/20 px-3 py-2.5">
-          {note.title ? <p className="text-sm font-semibold text-hud-text">{note.title}</p> : null}
+        <li
+          key={note.id}
+          className="selectable rounded-lg border border-line bg-surface px-3.5 py-3"
+        >
+          {note.title ? (
+            <p className="mb-0.5 text-[13px] font-semibold text-ink">{note.title}</p>
+          ) : null}
           {/* Plain text rendered as text (never HTML); pre-wrap keeps the user's line breaks. */}
-          <p className="text-sm break-words whitespace-pre-wrap text-hud-text/90">{note.body}</p>
+          <p className="text-sm leading-relaxed break-words whitespace-pre-wrap text-ink">
+            {note.body}
+          </p>
           <time
             dateTime={new Date(note.createdAt).toISOString()}
-            className="mt-1 block font-hud text-[11px] text-hud-muted"
+            className="mt-1.5 block text-xs text-muted"
           >
             {formatRelative(note.createdAt, now)}
           </time>
@@ -507,7 +505,7 @@ function LinkForm({ projectId }: { projectId: string }) {
         </Field>
       </div>
       <div className="flex justify-end">
-        <Button type="submit" variant="primary" disabled={saving}>
+        <Button type="submit" disabled={saving}>
           {saving ? 'Adding…' : 'Add link'}
         </Button>
       </div>
@@ -517,7 +515,7 @@ function LinkForm({ projectId }: { projectId: string }) {
 
 function LinkList({ links, now }: { links: Entry[]; now: number }) {
   const openLink = useHud((s) => s.openLink);
-  if (links.length === 0) return <p className="text-sm text-hud-muted">No links yet.</p>;
+  if (links.length === 0) return <p className="text-sm text-muted">No links yet.</p>;
   return (
     <ul className="space-y-1.5">
       {links.map((link) => (
@@ -526,17 +524,15 @@ function LinkList({ links, now }: { links: Entry[]; now: number }) {
             type="button"
             onClick={() => guard(() => openLink(link.id))}
             title={link.url ?? undefined}
-            className="group flex w-full items-baseline gap-2 rounded-md border border-hud-line bg-black/20 px-3 py-2 text-left hover:border-status-active/40 hover:bg-status-active/[0.05]"
+            className="group flex w-full items-baseline gap-2 rounded-lg border border-line bg-surface px-3.5 py-2.5 text-left hover:bg-hover"
           >
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm text-status-active group-hover:underline">
+              <span className="block truncate text-sm font-medium text-ink group-hover:underline">
                 {link.title}
               </span>
-              <span className="block truncate font-hud text-[11px] text-hud-muted">
-                {hostOf(link.url)}
-              </span>
+              <span className="block truncate text-xs text-muted">{hostOf(link.url)}</span>
             </span>
-            <span className="shrink-0 font-hud text-[11px] text-hud-muted">
+            <span className="shrink-0 text-xs text-muted">
               {formatRelative(link.createdAt, now)}
               <span aria-hidden> ↗</span>
             </span>

@@ -10,6 +10,7 @@ import { Button, inputClass } from './components/ui';
 import { subscribeToMain, useHud } from './store/useHud';
 import { ArchivedView } from './views/ArchivedView';
 import { HudGrid } from './views/HudGrid';
+import { Universe } from './views/Universe';
 import { Ignite } from './views/Ignite';
 import { Lab } from './views/Lab';
 import { Onboarding } from './views/Onboarding';
@@ -77,17 +78,24 @@ function Shell() {
   }, []);
 
   return (
-    <div className="hud-backdrop flex h-full flex-col">
+    <div className="flex h-full bg-canvas">
       {status === 'ready' && !onboarded ? (
-        <Onboarding />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Onboarding />
+        </div>
       ) : view === 'lab' ? (
-        <Lab />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Lab />
+        </div>
       ) : (
         <>
-          <TopBar searchRef={searchRef} />
-          <main className="relative flex-1 overflow-y-auto">
-            <MainView status={status} loadError={loadError} view={view} />
-          </main>
+          <Sidebar />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <Toolbar searchRef={searchRef} />
+            <main className="relative flex-1 overflow-y-auto">
+              <MainView status={status} loadError={loadError} view={view} />
+            </main>
+          </div>
         </>
       )}
 
@@ -126,12 +134,14 @@ function MainView({
   return (
     <>
       {status === 'loading' ? (
-        <p className="p-10 text-center font-hud text-sm text-hud-muted">Loading projects…</p>
+        <p className="p-10 text-center text-sm text-muted">Loading projects…</p>
       ) : status === 'error' ? (
         <div className="p-10 text-center">
-          <p className="font-hud text-sm text-red-300">Couldn&apos;t load your projects.</p>
-          <p className="mt-2 text-sm text-hud-muted">{loadError}</p>
+          <p className="text-sm font-medium text-danger">Couldn&apos;t load your projects.</p>
+          <p className="mt-2 text-sm text-muted">{loadError}</p>
         </div>
+      ) : view === 'universe' ? (
+        <Universe />
       ) : view === 'grid' ? (
         <HudGrid />
       ) : (
@@ -141,102 +151,175 @@ function MainView({
   );
 }
 
-function TopBar({ searchRef }: { searchRef: React.RefObject<HTMLInputElement | null> }) {
-  const search = useHud((s) => s.search);
-  const setSearch = useHud((s) => s.setSearch);
+function Sidebar() {
   const view = useHud((s) => s.view);
   const setView = useHud((s) => s.setView);
   const openDialog = useHud((s) => s.openDialog);
   const worlds = useHud((s) => s.worlds);
+  const projects = useHud((s) => s.projects);
   const worldFilter = useHud((s) => s.worldFilter);
   const setWorldFilter = useHud((s) => s.setWorldFilter);
-  const archivedCount = useHud((s) => s.projects.filter((p) => p.archivedAt !== null).length);
+
+  const live = projects.filter((p) => p.archivedAt === null);
+  const archivedCount = projects.length - live.length;
+  // Worlds filter the grid; picking one from the map or archive goes back to the grid.
+  const pickWorld = (id: string | null) => {
+    setWorldFilter(id);
+    if (view === 'archived') setView('grid');
+  };
 
   return (
-    <header className="border-b border-hud-line bg-black/20 px-6 pt-4 pb-3 backdrop-blur">
-      <div className="flex items-center gap-4">
-        <h1 className="font-display text-base font-bold tracking-[0.35em] text-status-active drop-shadow-[0_0_10px_rgb(56_214_255/0.7)]">
-          STOKEBAY
-        </h1>
-        <div className="ml-auto flex items-center gap-2">
-          <input
-            ref={searchRef}
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                setSearch('');
-                e.currentTarget.blur();
-              }
-            }}
-            placeholder="Search projects   /"
-            aria-label="Search projects by title"
-            className={`${inputClass} w-64 py-1.5`}
-          />
-          <Button variant="primary" onClick={() => openDialog({ kind: 'ignite' })}>
-            + Ignite
-          </Button>
-          <Button onClick={() => openDialog({ kind: 'scan' })}>Scan folder</Button>
-          <Button
-            aria-label="Settings"
-            title="Settings"
-            onClick={() => openDialog({ kind: 'settings' })}
-          >
-            ⚙
-          </Button>
-          <Button
-            aria-pressed={view === 'archived'}
-            onClick={() => setView(view === 'archived' ? 'grid' : 'archived')}
-          >
-            {view === 'archived' ? '← Back to grid' : `Archived (${archivedCount})`}
-          </Button>
-        </div>
+    <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-sidebar">
+      {/* Room for the macOS traffic lights; also the window's drag handle. */}
+      <div className="drag h-12 shrink-0" />
+      <div className="flex items-center gap-2 px-4 pb-4">
+        <Logo />
+        <span className="text-[15px] font-semibold text-ink">Stokebay</span>
       </div>
 
-      {view === 'grid' ? (
-        <nav aria-label="Filter by world" className="mt-3 flex flex-wrap gap-2">
-          <Chip active={worldFilter === null} onClick={() => setWorldFilter(null)}>
-            All
-          </Chip>
-          {worlds.map((w) => (
-            <Chip key={w.id} active={worldFilter === w.id} onClick={() => setWorldFilter(w.id)}>
-              <span
-                aria-hidden
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ background: w.color }}
-              />
-              {w.name}
-            </Chip>
-          ))}
-        </nav>
-      ) : null}
-    </header>
+      <nav aria-label="Library" className="flex flex-col gap-0.5 px-2">
+        <NavItem
+          active={view === 'grid' && worldFilter === null}
+          count={live.length}
+          onClick={() => {
+            setWorldFilter(null);
+            setView('grid');
+          }}
+        >
+          All projects
+        </NavItem>
+        <NavItem active={view === 'universe'} onClick={() => setView('universe')}>
+          Map
+        </NavItem>
+        <NavItem
+          active={view === 'archived'}
+          count={archivedCount}
+          onClick={() => setView('archived')}
+        >
+          Archived
+        </NavItem>
+      </nav>
+
+      <p className="mt-6 mb-1 px-4 text-[11px] font-semibold text-muted">Worlds</p>
+      <nav
+        aria-label="Filter by world"
+        className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2"
+      >
+        {worlds.map((w) => (
+          <NavItem
+            key={w.id}
+            active={view !== 'archived' && worldFilter === w.id}
+            count={live.filter((p) => p.worldIds.includes(w.id)).length}
+            onClick={() => pickWorld(worldFilter === w.id ? null : w.id)}
+          >
+            <span
+              aria-hidden
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{ background: w.color }}
+            />
+            <span className="truncate">{w.name}</span>
+          </NavItem>
+        ))}
+        {worlds.length === 0 ? (
+          <p className="px-2 text-xs text-muted">Add worlds in Settings.</p>
+        ) : null}
+      </nav>
+
+      <div className="flex flex-col gap-0.5 border-t border-line p-2">
+        <NavItem active={false} onClick={() => openDialog({ kind: 'scan' })}>
+          Scan a folder…
+        </NavItem>
+        <NavItem active={false} onClick={() => openDialog({ kind: 'settings' })}>
+          Settings
+        </NavItem>
+      </div>
+    </aside>
   );
 }
 
-function Chip({
+function Logo() {
+  // A small ember: the one mark the app uses.
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
+      <path
+        d="M9 1.5c.6 2.6 4.5 4.6 4.5 8.6A4.5 4.5 0 0 1 9 14.6a4.5 4.5 0 0 1-4.5-4.5c0-2 1.1-3.2 2-4.2.2 1.3.8 2.2 1.7 2.6C8.2 6.4 8.3 3.6 9 1.5Z"
+        fill="var(--accent)"
+      />
+      <rect x="4" y="15.6" width="10" height="1.4" rx="0.7" fill="var(--accent)" opacity="0.45" />
+    </svg>
+  );
+}
+
+function NavItem({
   active,
+  count,
   onClick,
   children,
 }: {
   active: boolean;
+  count?: number;
   onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
-      aria-pressed={active}
+      aria-current={active ? 'page' : undefined}
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1 text-xs transition-colors ${
-        active
-          ? 'border-status-active/70 bg-status-active/15 text-status-active'
-          : 'border-hud-line text-hud-muted hover:text-hud-text'
+      className={`flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-[13px] transition-colors ${
+        active ? 'bg-hover font-medium text-ink' : 'text-ink/80 hover:bg-hover'
       }`}
     >
       {children}
+      {count !== undefined ? (
+        <span className="ml-auto text-xs text-muted tabular-nums">{count}</span>
+      ) : null}
     </button>
+  );
+}
+
+function Toolbar({ searchRef }: { searchRef: React.RefObject<HTMLInputElement | null> }) {
+  const search = useHud((s) => s.search);
+  const setSearch = useHud((s) => s.setSearch);
+  const view = useHud((s) => s.view);
+  const openDialog = useHud((s) => s.openDialog);
+  const worlds = useHud((s) => s.worlds);
+  const worldFilter = useHud((s) => s.worldFilter);
+
+  const world = worldFilter ? worlds.find((w) => w.id === worldFilter) : undefined;
+  const title =
+    view === 'archived'
+      ? 'Archived'
+      : view === 'universe'
+        ? world
+          ? `Map · ${world.name}`
+          : 'Map'
+        : (world?.name ?? 'All projects');
+
+  return (
+    <header className="drag flex h-14 shrink-0 items-center gap-3 border-b border-line px-6">
+      <h1 className="text-[15px] font-semibold text-ink">{title}</h1>
+      <div className="ml-auto flex items-center gap-2">
+        <input
+          ref={searchRef}
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setSearch('');
+              e.currentTarget.blur();
+            }
+          }}
+          placeholder="Search    /"
+          aria-label="Search projects by title"
+          className={`${inputClass} h-8 w-56 py-1`}
+        />
+        <Button variant="primary" onClick={() => openDialog({ kind: 'ignite' })}>
+          New project
+        </Button>
+      </div>
+    </header>
   );
 }
 
@@ -252,14 +335,19 @@ function ToastHost() {
         <div
           key={toast.id}
           role={toast.kind === 'error' ? 'alert' : 'status'}
-          className={`pointer-events-auto flex max-w-xl items-start gap-3 rounded-lg border px-4 py-3 text-sm shadow-lg backdrop-blur ${
+          className={`pointer-events-auto flex max-w-xl items-start gap-3 rounded-lg border px-4 py-2.5 text-sm shadow-pop ${
             toast.kind === 'error'
-              ? 'border-red-400/50 bg-red-950/80 text-red-100'
-              : 'border-status-active/40 bg-hud-raised text-hud-text'
+              ? 'border-danger/30 bg-raised text-danger'
+              : 'border-line bg-ink text-canvas'
           }`}
         >
           <span>{toast.message}</span>
-          <button type="button" aria-label="Dismiss" onClick={dismiss} className="text-hud-muted">
+          <button
+            type="button"
+            aria-label="Dismiss"
+            onClick={dismiss}
+            className="opacity-60 hover:opacity-100"
+          >
             ×
           </button>
         </div>

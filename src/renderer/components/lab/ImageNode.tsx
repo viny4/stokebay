@@ -5,7 +5,7 @@ import { openEntryFile } from './lab-actions';
 import type { ImageNode as ImageNodeType } from './lab-nodes';
 import { LabFrame } from './LabFrame';
 
-const ACCENT = '#7dd3fc';
+const ACCENT = 'var(--paused)';
 
 function ImageNodeView({ data, selected }: NodeProps<ImageNodeType>) {
   const { entry } = data;
@@ -21,7 +21,7 @@ function ImageNodeView({ data, selected }: NodeProps<ImageNodeType>) {
     >
       <div className="px-3 pt-1.5 pb-2.5" title="Double-click to open">
         {broken ? (
-          <div className="flex h-24 w-48 items-center justify-center border border-dashed border-hud-line text-xs text-hud-muted">
+          <div className="flex h-24 w-48 items-center justify-center rounded-md border border-dashed border-line bg-sunken text-xs text-muted">
             Image unavailable
           </div>
         ) : (
@@ -31,10 +31,10 @@ function ImageNodeView({ data, selected }: NodeProps<ImageNodeType>) {
             alt={entry.title}
             draggable={false}
             onError={() => setBroken(true)}
-            className="block max-h-[260px] max-w-[320px] min-w-24 object-contain"
+            className="block max-h-[260px] max-w-[320px] min-w-24 rounded-md object-contain"
           />
         )}
-        <p className="mt-1.5 max-w-[320px] truncate text-xs text-hud-muted">{entry.title}</p>
+        <p className="mt-1.5 max-w-[320px] truncate text-xs text-muted">{entry.title}</p>
       </div>
     </LabFrame>
   );

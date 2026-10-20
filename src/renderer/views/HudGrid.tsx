@@ -55,7 +55,7 @@ export function HudGrid() {
           ref={grid}
           aria-label="Projects"
           onKeyDown={onKeyDown}
-          className="relative grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4"
+          className="relative grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3"
         >
           <AnimatePresence mode="popLayout">
             {visible.map((project, i) => (
@@ -86,7 +86,7 @@ function SampleBanner() {
   return (
     <div
       role="note"
-      className="flex flex-wrap items-center gap-3 rounded-lg border border-status-idea/30 bg-status-idea/10 px-4 py-2.5 text-sm text-hud-text"
+      className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface px-4 py-2.5 text-sm text-muted shadow-card"
     >
       <span>These are sample projects so you can see how cards look.</span>
       <Button
@@ -119,11 +119,9 @@ function EmptyState({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto mt-16 flex max-w-md flex-col items-center gap-3 hud-frame hud-frame-sm px-8 py-10 text-center">
-      <h2 className="font-display text-sm tracking-[0.2em] text-status-active uppercase">
-        {title}
-      </h2>
-      <p className="text-sm text-hud-muted">{body}</p>
+    <div className="mx-auto mt-16 flex max-w-md flex-col items-center gap-3 panel px-8 py-10 text-center">
+      <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
+      <p className="text-sm text-muted">{body}</p>
       <div className="mt-2 flex gap-2">{children}</div>
     </div>
   );

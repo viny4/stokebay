@@ -5,7 +5,7 @@ import { hostOf } from './lab-geometry';
 import type { LinkNode as LinkNodeType } from './lab-nodes';
 import { LabFrame } from './LabFrame';
 
-const ACCENT = '#a78bfa';
+const ACCENT = 'var(--idea)';
 
 function LinkNodeView({ data, selected }: NodeProps<LinkNodeType>) {
   const { entry } = data;
@@ -22,10 +22,10 @@ function LinkNodeView({ data, selected }: NodeProps<LinkNodeType>) {
         aria-label={`Open ${entry.title || host} in the browser`}
         className="nodrag block w-full px-3 pt-1 pb-3 text-left"
       >
-        <span className="block truncate font-hud text-sm text-hud-text hover:text-status-idea">
+        <span className="block truncate font-medium text-sm text-ink underline-offset-2 hover:underline">
           {entry.title || host}
         </span>
-        <span className="block truncate text-xs text-hud-muted">{host}</span>
+        <span className="block truncate text-xs text-muted">{host}</span>
       </button>
     </LabFrame>
   );

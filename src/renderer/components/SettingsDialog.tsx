@@ -55,35 +55,32 @@ export function SettingsDialog() {
       width="max-w-2xl"
       footer={<Button onClick={closeDialog}>Close</Button>}
     >
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col divide-y divide-line [&>section]:py-6 [&>section:first-child]:pt-1 [&>section:last-child]:pb-1">
         <WorldsSettings />
         <EditorSettings />
         <DataSettings />
-        <section aria-labelledby="settings-backups" className="flex flex-col gap-4">
+        <section aria-labelledby="settings-backups" className="flex flex-col gap-3">
           <div>
-            <h3
-              id="settings-backups"
-              className="font-display text-xs tracking-[0.3em] text-status-active uppercase"
-            >
+            <h3 id="settings-backups" className="text-[13px] font-semibold text-ink">
               Backups
             </h3>
-            <p className="mt-2 text-sm text-hud-muted">
-              Stokebay already keeps copies on this Mac. Add a folder in Google Drive, iCloud or
-              Dropbox and a copy is saved there every day, so your projects survive even if this Mac
-              doesn&apos;t. Stokebay only writes files; your cloud app uploads them.
+            <p className="mt-1 text-sm leading-relaxed text-muted">
+              Stokebay already keeps copies on this computer. Add a folder in Google Drive, iCloud
+              or Dropbox and a copy is saved there every day, so your projects survive even if this
+              computer doesn&apos;t. Stokebay only writes files; your cloud app uploads them.
             </p>
           </div>
 
           {status === null ? (
-            <p className="font-hud text-sm text-hud-muted">Checking…</p>
+            <p className="text-sm text-muted">Checking…</p>
           ) : status.folder ? (
-            <div className="hud-frame hud-frame-sm flex flex-col gap-3 p-4">
+            <div className="panel flex flex-col gap-3 p-4">
               <div>
-                <p className="font-hud text-xs tracking-widest text-hud-muted uppercase">
-                  Backing up to
+                <p className="text-xs text-muted">Backing up to</p>
+                <p className="selectable mt-0.5 text-sm font-medium break-all text-ink">
+                  {status.folder}
                 </p>
-                <p className="mt-1 font-mono text-xs break-all text-hud-text">{status.folder}</p>
-                <p className="mt-2 text-sm text-hud-muted">
+                <p className="mt-1.5 text-xs text-muted">
                   {status.lastBackupAt
                     ? `Last backup ${formatRelative(status.lastBackupAt, now)} · ${status.snapshots.length} day${status.snapshots.length === 1 ? '' : 's'} kept (up to 30)`
                     : 'No backup yet.'}
@@ -111,8 +108,8 @@ export function SettingsDialog() {
               </div>
             </div>
           ) : (
-            <div className="hud-frame hud-frame-sm flex flex-col gap-3 p-4">
-              <p className="text-sm text-hud-text">Folder backups are off.</p>
+            <div className="panel flex flex-col gap-3 p-4">
+              <p className="text-sm text-ink">Folder backups are off.</p>
               <div className="flex flex-wrap gap-2">
                 {status.googleDrive ? (
                   <Button
@@ -139,7 +136,7 @@ export function SettingsDialog() {
                 </Button>
               </div>
               {!status.googleDrive ? (
-                <p className="text-xs text-hud-muted">
+                <p className="text-xs text-muted">
                   Tip: install Google Drive for desktop, then pick its &ldquo;My Drive&rdquo;
                   folder.
                 </p>
@@ -148,10 +145,8 @@ export function SettingsDialog() {
           )}
 
           {status && status.snapshots.length > 0 ? (
-            <div className="hud-frame hud-frame-sm flex flex-col gap-3 p-4">
-              <p className="font-hud text-xs tracking-widest text-hud-muted uppercase">
-                Restore from backup
-              </p>
+            <div className="panel flex flex-col gap-3 p-4">
+              <p className="text-[13px] font-medium text-ink">Restore from backup</p>
               <div className="flex flex-wrap items-center gap-2">
                 <label htmlFor="restore-day" className="sr-only">
                   Backup date
@@ -160,7 +155,7 @@ export function SettingsDialog() {
                   id="restore-day"
                   value={restoreDay ?? ''}
                   onChange={(e) => setRestoreDay(e.target.value || null)}
-                  className="rounded-md border border-hud-line bg-black/30 px-3 py-1.5 text-sm text-hud-text"
+                  className="h-8 rounded-md border border-line bg-surface px-2.5 text-[13px] text-ink focus:border-accent focus:outline-none focus:ring-3 focus:ring-accent/15"
                 >
                   <option value="">Pick a date…</option>
                   {status.snapshots.map((day) => (
@@ -177,14 +172,14 @@ export function SettingsDialog() {
                   Restore and restart
                 </Button>
               </div>
-              <p className="text-xs text-hud-muted">
+              <p className="text-xs text-muted">
                 Your current data is saved aside first, so restoring never loses anything.
               </p>
             </div>
           ) : null}
 
           {error ? (
-            <p role="alert" className="text-sm text-red-300">
+            <p role="alert" className="text-sm text-danger">
               {error}
             </p>
           ) : null}

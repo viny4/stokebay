@@ -7,7 +7,7 @@ import { newItemId } from './lab-geometry';
 import type { ChecklistNode as ChecklistNodeType } from './lab-nodes';
 import { LabFrame } from './LabFrame';
 
-const ACCENT = '#34d399';
+const ACCENT = 'var(--done)';
 
 function ChecklistNodeView({ data, selected }: NodeProps<ChecklistNodeType>) {
   const { entry, autoEdit } = data;
@@ -60,11 +60,11 @@ function ChecklistNodeView({ data, selected }: NodeProps<ChecklistNodeType>) {
               }}
               aria-label="Checklist title"
               maxLength={200}
-              className={`nodrag ${inputClass} py-1 font-hud`}
+              className={`nodrag ${inputClass} py-1 font-medium`}
             />
           ) : (
             <h3
-              className="font-hud text-sm text-hud-text"
+              className="font-medium text-sm text-ink"
               title="Double-click to rename"
               onDoubleClick={() => {
                 setTitle(entry.title);
@@ -74,15 +74,15 @@ function ChecklistNodeView({ data, selected }: NodeProps<ChecklistNodeType>) {
               {entry.title || 'Checklist'}
             </h3>
           )}
-          <span className="shrink-0 font-hud text-[11px] text-hud-muted">
+          <span className="shrink-0 text-[11px] tabular-nums text-muted">
             {done}/{items.length} done
           </span>
         </div>
 
         {items.length > 0 ? (
-          <div className="mt-1.5 h-0.5 bg-white/10" aria-hidden>
+          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-sunken" aria-hidden>
             <div
-              className="h-full bg-status-done transition-[width]"
+              className="h-full rounded-full bg-status-done transition-[width]"
               style={{ width: `${(done / items.length) * 100}%` }}
             />
           </div>
@@ -101,7 +101,7 @@ function ChecklistNodeView({ data, selected }: NodeProps<ChecklistNodeType>) {
                 className="nodrag mt-0.5 accent-status-done"
               />
               <span
-                className={`flex-1 break-words ${item.done ? 'text-hud-muted line-through' : 'text-hud-text'}`}
+                className={`flex-1 break-words ${item.done ? 'text-muted line-through' : 'text-ink'}`}
               >
                 {item.text}
               </span>
@@ -109,7 +109,7 @@ function ChecklistNodeView({ data, selected }: NodeProps<ChecklistNodeType>) {
                 type="button"
                 aria-label={`Remove “${item.text}”`}
                 onClick={() => save(items.filter((i) => i.id !== item.id))}
-                className="nodrag px-1 text-hud-muted opacity-0 group-hover/item:opacity-100 hover:text-red-300 focus-visible:opacity-100"
+                className="nodrag px-1 text-muted opacity-0 group-hover/item:opacity-100 hover:text-danger focus-visible:opacity-100"
               >
                 ×
               </button>

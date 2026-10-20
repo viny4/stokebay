@@ -1,13 +1,7 @@
-// The Lab's top bar: back to the HUD, the project, and the toolbar that adds objects.
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type CSSProperties,
-  type FormEvent,
-  type RefObject,
-} from 'react';
+// The Lab's top bar: back to the projects, the project, and the toolbar that adds objects.
+// It doubles as the window's title bar, so it is a drag strip and leaves room for the
+// macOS traffic lights on the left.
+import { useEffect, useId, useRef, useState, type FormEvent, type RefObject } from 'react';
 import type { ProjectSummary } from '../../../shared/types';
 import { Button, StatusBadge, inputClass } from '../ui';
 
@@ -37,13 +31,18 @@ export function LabHeader({
   const linkWrap = useRef<HTMLDivElement>(null);
 
   return (
-    <header className="relative z-20 flex items-center gap-4 border-b border-hud-line bg-black/30 px-5 py-2.5 backdrop-blur">
-      <Button onClick={onBack} aria-label="Back to the HUD">
-        ← HUD
-      </Button>
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="font-hud text-[10px] tracking-[0.35em] text-hud-muted uppercase">Lab</span>
-        <h1 className="truncate font-display text-sm font-bold tracking-[0.2em] text-status-active drop-shadow-[0_0_8px_rgb(56_214_255/0.6)]">
+    <header className="drag relative z-20 flex h-14 shrink-0 items-center gap-3 border-b border-line bg-sidebar pr-4 pl-20">
+      <button
+        type="button"
+        onClick={onBack}
+        aria-label="Back to projects"
+        className="inline-flex h-7 items-center rounded-md px-2 text-[13px] font-medium text-muted hover:bg-hover hover:text-ink"
+      >
+        ← Projects
+      </button>
+      <span aria-hidden className="h-4 w-px bg-line" />
+      <div className="flex min-w-0 items-center gap-2.5">
+        <h1 className="truncate text-[15px] font-semibold text-ink">
           {project?.title ?? 'Loading…'}
         </h1>
         {project ? <StatusBadge status={project.status} /> : null}
@@ -73,10 +72,15 @@ export function LabHeader({
           <Button onClick={tools.addZone}>+ Zone</Button>
           <Divider />
           <Button
-            variant={project.partsBin ? 'primary' : 'ghost'}
             aria-pressed={partsOpen}
             onClick={tools.toggleParts}
-            className={partsOpen ? 'bg-status-active/30' : ''}
+            className={
+              partsOpen
+                ? 'border-accent/40 bg-accent/10 text-ink hover:bg-accent/15'
+                : project.partsBin
+                  ? 'border-line-strong'
+                  : ''
+            }
           >
             Parts Bin
           </Button>
@@ -90,7 +94,7 @@ export function LabHeader({
 }
 
 function Divider() {
-  return <span aria-hidden className="mx-1 h-5 w-px bg-hud-line" />;
+  return <span aria-hidden className="mx-1 h-4 w-px bg-line" />;
 }
 
 function LinkForm({
@@ -141,13 +145,9 @@ function LinkForm({
           onClose();
         }
       }}
-      className="hud-frame hud-frame-sm absolute top-full right-0 z-30 mt-2 flex w-80 flex-col gap-2 p-4 drop-shadow-[0_0_18px_rgb(56_189_248/0.35)]"
-      style={{ '--frame-fill': 'var(--color-hud-raised)' } as CSSProperties}
+      className="absolute top-full right-0 z-30 mt-2 flex w-80 flex-col gap-2 rounded-xl border border-line bg-raised p-4 shadow-pop"
     >
-      <h2
-        id={headingId}
-        className="font-hud text-xs tracking-[0.25em] text-status-active uppercase"
-      >
+      <h2 id={headingId} className="text-[13px] font-semibold text-ink">
         Add a link
       </h2>
       <input
@@ -170,7 +170,7 @@ function LinkForm({
         className={inputClass}
       />
       {error ? (
-        <p role="alert" className="text-xs text-red-300">
+        <p role="alert" className="text-xs text-danger">
           {error}
         </p>
       ) : null}

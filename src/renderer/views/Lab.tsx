@@ -1,5 +1,5 @@
 // A project's Lab: a full-screen canvas where every resource is an object. App shows this
-// instead of the HUD while store.view === 'lab'.
+// instead of the project grid while store.view === 'lab'.
 import { ReactFlowProvider } from '@xyflow/react';
 import { LabHeader } from '../components/lab/LabHeader';
 import { LabWorkspace } from '../components/lab/LabWorkspace';
@@ -15,10 +15,8 @@ export function Lab() {
     return (
       <div className="flex h-full flex-col">
         <LabHeader project={project} partsOpen={false} tools={null} onBack={exitLab} />
-        <div aria-busy="true" className="flex flex-1 items-center justify-center">
-          <p className="animate-pulse font-hud text-sm tracking-[0.3em] text-hud-muted uppercase">
-            Powering up the Lab…
-          </p>
+        <div aria-busy="true" className="flex flex-1 items-center justify-center bg-canvas">
+          <p className="text-sm text-muted">Opening the Lab…</p>
         </div>
       </div>
     );

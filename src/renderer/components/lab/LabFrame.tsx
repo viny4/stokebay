@@ -1,7 +1,6 @@
-// The cut-corner card every Lab object sits in, plus the four connection handles.
+// The plain card every Lab object sits in, plus the four connection handles.
 import { Handle, Position } from '@xyflow/react';
-import type { CSSProperties, ReactNode } from 'react';
-import { withAlpha } from '../ui';
+import type { ReactNode } from 'react';
 
 const SIDES = [
   ['t', Position.Top],
@@ -35,7 +34,7 @@ export function LabFrame({
 }: {
   label: string;
   glyph: string;
-  /** `#rrggbb`, so the glow can add alpha. */
+  /** Any CSS colour; tints only the small type glyph so the card itself stays neutral. */
   accent: string;
   selected: boolean;
   className?: string;
@@ -44,22 +43,16 @@ export function LabFrame({
 }) {
   return (
     <div
-      className={`hud-frame hud-frame-sm group ${className}`}
-      style={
-        {
-          '--frame-color': selected ? accent : withAlpha(accent, 0.38),
-          '--frame-fill': 'var(--color-hud-raised)',
-          filter: selected ? `drop-shadow(0 0 10px ${withAlpha(accent, 0.55)})` : undefined,
-        } as CSSProperties
-      }
+      className={`group relative rounded-lg border bg-surface shadow-card transition-[border-color,box-shadow] ${
+        selected ? 'border-accent ring-2 ring-accent/35' : 'border-line hover:border-line-strong'
+      } ${className}`}
       onDoubleClick={onDoubleClick}
     >
       <Handles />
-      <div
-        className="flex items-center gap-1.5 px-3 pt-2 font-hud text-[10px] tracking-[0.25em] uppercase"
-        style={{ color: withAlpha(accent, 0.85) }}
-      >
-        <span aria-hidden>{glyph}</span>
+      <div className="flex items-center gap-1.5 px-3 pt-2 text-[11px] font-medium text-muted">
+        <span aria-hidden style={{ color: accent }}>
+          {glyph}
+        </span>
         {label}
       </div>
       {children}

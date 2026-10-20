@@ -3,12 +3,15 @@
 // of the currency (cents), never floats, and different currencies are never added together.
 import type { Part, PartStatus } from '../../../shared/types';
 
-/** Status colours as hex so callers can add alpha for fills and glows. */
+/**
+ * Status colours as hex (callers may add alpha). Mid-tone and muted so they read on both the
+ * light and dark themes; the UI uses them for small dots and thin bars only.
+ */
 export const PART_STATUS_HEX: Record<PartStatus, string> = {
-  needed: '#fbbf24',
-  ordered: '#38bdf8',
-  arrived: '#a78bfa',
-  installed: '#34d399',
+  needed: '#c8862a',
+  ordered: '#4f86c0',
+  arrived: '#8a8580',
+  installed: '#3d9a66',
 };
 
 export const PART_STATUS_LABEL: Record<PartStatus, string> = {

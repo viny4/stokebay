@@ -19,22 +19,22 @@ export const Timeline = memo(function Timeline({
   const sorted = useMemo(() => [...events].sort((a, b) => b.createdAt - a.createdAt), [events]);
 
   if (sorted.length === 0) {
-    return <p className="text-sm text-hud-muted">Nothing has happened here yet.</p>;
+    return <p className="text-sm text-muted">Nothing has happened here yet.</p>;
   }
 
   return (
-    <ol className="relative ml-1.5 border-l border-status-active/25">
+    <ol className="relative ml-1.5 border-l border-line">
       {sorted.map((event) => (
-        <li key={event.id} className="relative pb-3 pl-4 last:pb-0">
+        <li key={event.id} className="relative pb-3.5 pl-4 last:pb-0">
           <span
             aria-hidden
-            className="absolute top-1.5 -left-[4.5px] h-2 w-2 rounded-full border border-status-active/70 bg-hud-bg shadow-[0_0_6px_rgb(34_211_238/0.6)]"
+            className="absolute top-1.5 -left-[4.5px] h-2 w-2 rounded-full border border-line-strong bg-raised"
           />
-          <p className="text-sm text-hud-text">{timelineLabel(event, byId)}</p>
+          <p className="text-sm text-ink">{timelineLabel(event, byId)}</p>
           <time
             dateTime={new Date(event.createdAt).toISOString()}
             title={new Date(event.createdAt).toLocaleString()}
-            className="font-hud text-[11px] text-hud-muted"
+            className="text-xs text-muted"
           >
             {formatRelative(event.createdAt, now)}
           </time>

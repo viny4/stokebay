@@ -1,34 +1,12 @@
 // One project on the HUD grid. The card body is a real <button> (opens the detail panel);
 // the actions menu and the cold "Pause this?" hint are siblings so buttons never nest.
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { memo, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { glowFor, type Glow } from '../../shared/glow';
+import { AnimatePresence, motion } from 'framer-motion';
+import { memo, useEffect, useRef, useState } from 'react';
+import { glowFor } from '../../shared/glow';
 import { daysSince, formatRelative } from '../../shared/time';
 import type { Id, ProjectSummary, World } from '../../shared/types';
 import { guard, useHud } from '../store/useHud';
-import { STATUS_HEX, StatusBadge, WorldTag, withAlpha } from './ui';
-
-const halo = (hex: string, blur: number, alpha: number) =>
-  `drop-shadow(0px 0px ${blur}px ${withAlpha(hex, alpha)})`;
-
-/**
- * Frame colour and halo per glow level. The halo is a drop-shadow filter (not box-shadow)
- * so it follows the cut corners. Non-active statuses use `none`: a steady, modest edge.
- */
-function glowStyle(glow: Glow, hex: string): { frame: string; filter: string } {
-  switch (glow) {
-    case 'bright':
-      return { frame: withAlpha(hex, 0.9), filter: halo(hex, 9, 0.55) };
-    case 'medium':
-      return { frame: withAlpha(hex, 0.6), filter: halo(hex, 6, 0.32) };
-    case 'dim':
-      return { frame: withAlpha(hex, 0.38), filter: halo(hex, 3, 0.18) };
-    case 'cold':
-      return { frame: 'var(--color-hud-line)', filter: 'none' };
-    case 'none':
-      return { frame: withAlpha(hex, 0.55), filter: halo(hex, 4, 0.22) };
-  }
-}
+import { StatusBadge, WorldTag } from './ui';
 
 export interface ProjectCardProps {
   project: ProjectSummary;
@@ -47,73 +25,58 @@ export const ProjectCard = memo(function ProjectCard({
   const openProject = useHud((s) => s.openProject);
   const openDialog = useHud((s) => s.openDialog);
   const [menuOpen, setMenuOpen] = useState(false);
-  // MotionConfig only skips transform/layout animations; the breathing glow is an opacity
-  // loop, so it checks the OS setting itself.
-  const reduceMotion = useReducedMotion();
 
-  const glow = glowFor(p, now);
-  const hex = STATUS_HEX[p.status];
-  const look = glowStyle(glow, hex);
-  const breathe = glow === 'bright' && !reduceMotion;
-  const cold = glow === 'cold';
+  const cold = glowFor(p, now) === 'cold';
   const worlds = p.worldIds.flatMap((id) => worldsById.get(id) ?? []);
   const git = p.git?.lastCommitAt ? p.git : null;
   const pause = p.status === 'paused' ? p.activePause : null;
 
   return (
-    <motion.div
-      whileHover={{ y: -3 }}
-      style={{ '--frame-color': look.frame, filter: look.filter } as CSSProperties}
-      animate={
-        breathe ? { filter: [halo(hex, 6, 0.35), halo(hex, 14, 0.75), halo(hex, 6, 0.35)] } : {}
-      }
-      transition={
-        breathe ? { filter: { duration: 4, repeat: Infinity, ease: 'easeInOut' } } : undefined
-      }
-      className={`hud-frame group relative flex h-full flex-col ${menuOpen ? 'z-20' : ''}`}
+    <div
+      className={`panel group relative flex h-full flex-col transition-[border-color,box-shadow] hover:border-line-strong ${menuOpen ? 'z-20' : ''}`}
     >
       <button
         type="button"
         data-card-index={index}
         onClick={() => guard(() => openProject(p.id))}
-        className={`flex flex-1 flex-col gap-2.5 rounded-xl p-4 pr-11 text-left transition-[opacity,filter] ${
-          cold ? 'opacity-70 grayscale-[0.7] group-hover:opacity-90' : ''
+        className={`flex flex-1 flex-col gap-2 rounded-[10px] p-4 pr-11 text-left transition-opacity ${
+          cold ? 'opacity-60 group-hover:opacity-90' : ''
         }`}
       >
-        <span className="line-clamp-2 font-display text-[15px] leading-snug font-medium tracking-wide text-hud-text">
+        <span className="line-clamp-2 text-[15px] leading-snug font-semibold text-ink">
           {p.title}
         </span>
 
-        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted">
           <StatusBadge status={p.status} />
-          {cold ? (
-            <span className="font-hud text-xs tracking-wider text-hud-muted uppercase">
-              Cold · {daysSince(p.lastActivityAt, now)}d
-            </span>
-          ) : null}
-          <span className="ml-auto flex items-center gap-2 text-xs text-hud-muted">
-            {p.path ? <FolderIcon path={p.path} /> : null}
-            <span>{formatRelative(p.lastActivityAt, now)}</span>
-          </span>
+          <span aria-hidden>·</span>
+          <span>{formatRelative(p.lastActivityAt, now)}</span>
+          {p.path ? <FolderIcon path={p.path} /> : null}
         </span>
+
+        {cold ? (
+          <span className="text-xs text-muted">
+            Untouched for {daysSince(p.lastActivityAt, now)} days
+          </span>
+        ) : null}
 
         {pause ? (
           <span className="flex flex-col gap-0.5 text-xs">
-            <span className="text-status-paused">Paused {formatRelative(pause.pausedAt, now)}</span>
+            <span className="text-muted">Paused {formatRelative(pause.pausedAt, now)}</span>
             {pause.whereIStopped ? (
-              <span className="truncate text-hud-muted">Stopped at: {pause.whereIStopped}</span>
+              <span className="truncate text-ink/80">Stopped at: {pause.whereIStopped}</span>
             ) : null}
           </span>
         ) : null}
 
         {git ? (
-          <span className="truncate font-mono text-xs text-hud-muted">
+          <span className="truncate font-mono text-xs text-muted">
             {git.branch ?? 'detached'} · {git.lastCommitMsg ?? 'no message'}
           </span>
         ) : null}
 
         {worlds.length > 0 ? (
-          <span className="mt-auto flex flex-wrap gap-1.5 pt-1">
+          <span className="mt-auto flex flex-wrap gap-1.5 pt-2">
             {worlds.map((w) => (
               <WorldTag key={w.id} world={w} />
             ))}
@@ -122,19 +85,19 @@ export const ProjectCard = memo(function ProjectCard({
       </button>
 
       {cold ? (
-        <div className="flex justify-end px-4 pb-3">
+        <div className="border-t border-line px-2 py-1.5">
           <button
             type="button"
             onClick={() => openDialog({ kind: 'pause', projectId: p.id })}
-            className="rounded-md border border-status-paused/40 px-2.5 py-1 text-xs text-status-paused hover:bg-status-paused/10"
+            className="rounded-md px-2 py-1 text-xs font-medium text-status-paused hover:bg-hover"
           >
-            Pause this?
+            Pause and note where you stopped
           </button>
         </div>
       ) : null}
 
       <CardMenu project={p} open={menuOpen} setOpen={setMenuOpen} />
-    </motion.div>
+    </div>
   );
 });
 
@@ -236,7 +199,7 @@ function CardMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className="flex h-7 w-7 items-center justify-center rounded-md text-hud-muted transition-colors hover:bg-white/[0.08] hover:text-hud-text"
+        className="flex h-7 w-7 items-center justify-center rounded-md text-muted opacity-0 transition hover:bg-hover hover:text-ink group-hover:opacity-100 focus-visible:opacity-100 aria-expanded:opacity-100"
       >
         <span aria-hidden className="text-lg leading-none">
           ⋯
@@ -254,7 +217,7 @@ function CardMenu({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.97 }}
             transition={{ duration: 0.12 }}
-            className="absolute top-8 right-0 min-w-36 origin-top-right rounded-lg border border-hud-line bg-hud-raised py-1 shadow-xl shadow-black/50"
+            className="absolute top-8 right-0 min-w-36 origin-top-right rounded-lg border border-line bg-raised p-1 shadow-pop"
           >
             {items.map((item) => (
               <button
@@ -266,7 +229,7 @@ function CardMenu({
                   close(true);
                   item.run();
                 }}
-                className="block w-full px-3 py-1.5 text-left text-sm text-hud-text hover:bg-white/[0.08] focus:bg-white/[0.08]"
+                className="block w-full rounded-md px-2.5 py-1.5 text-left text-[13px] text-ink hover:bg-hover focus:bg-hover focus:outline-none"
               >
                 {item.label}
               </button>

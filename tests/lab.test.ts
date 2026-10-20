@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { STORE_VERSION } from '../src/main/store/repository';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { getBlueprint } from '../src/main/services/blueprints';
@@ -60,7 +61,7 @@ describe('migrateStoreData', () => {
       events: [],
     };
     const data = migrateStoreData(v1)!;
-    expect(data.version).toBe(3);
+    expect(data.version).toBe(STORE_VERSION);
     expect(data.projects[0]).toMatchObject({
       title: 'Old',
       kind: 'other',
@@ -91,7 +92,7 @@ describe('migrateStoreData', () => {
     const projects = new ProjectService(store, () => NOW);
     await projects.create({ title: 'New', status: 'active', worldIds: [], path: null });
     const saved = JSON.parse(await fs.readFile(path.join(dir, DATA_FILE), 'utf8'));
-    expect(saved.version).toBe(3);
+    expect(saved.version).toBe(STORE_VERSION);
     expect(saved.modules).toEqual([]);
   });
 });

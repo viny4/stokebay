@@ -37,7 +37,7 @@ export function timelineLabel(event: ActivityEvent, entries: ReadonlyMap<Id, Ent
     case 'project_created':
       if (event.payload.source === 'scan') return 'Imported from a folder scan';
       if (event.payload.source === 'sample') return 'Added as a sample';
-      if (event.payload.source === 'ignite') return 'Ignited from a blueprint';
+      if (event.payload.source === 'ignite') return 'Created from a blueprint';
       return 'Project created';
     case 'project_updated': {
       const fields = stringList(event.payload.fields).map((f) => FIELD_LABEL[f] ?? f);

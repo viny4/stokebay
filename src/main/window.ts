@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, nativeTheme } from 'electron';
 import path from 'node:path';
 import { createLogger } from './logging/logger';
 
@@ -11,8 +11,13 @@ export function createMainWindow(): BrowserWindow {
     minWidth: 900,
     minHeight: 600,
     show: false,
-    backgroundColor: '#04070c',
+    // Matches the page background in each mode so nothing flashes while it paints.
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1b1a19' : '#fbfaf8',
     title: 'Stokebay',
+    // macOS: no title bar strip; the traffic lights sit inside the sidebar like native apps.
+    ...(process.platform === 'darwin'
+      ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 16, y: 16 } }
+      : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -21,7 +26,7 @@ export function createMainWindow(): BrowserWindow {
     },
   });
 
-  // Showing only when ready avoids a white flash before the dark UI paints.
+  // Showing only when ready avoids a flash before the UI paints.
   win.once('ready-to-show', () => win.show());
 
   // The window only ever shows the app itself; links open in the system browser through IPC.

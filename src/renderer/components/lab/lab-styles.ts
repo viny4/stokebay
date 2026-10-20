@@ -1,44 +1,51 @@
-// Hologram-blue overrides for React Flow's stock look. Scoped to .lab-canvas and injected by
-// the Lab, so the app's global stylesheet stays free of canvas details.
+// React Flow's stock look, re-pointed at the app's colour tokens so the canvas follows light
+// and dark mode like the rest of the app. Scoped to .lab-canvas and injected by the Lab, so the
+// app's global stylesheet stays free of canvas details.
 export const LAB_CSS = `
 .lab-canvas .react-flow {
-  --xy-background-color: transparent;
-  --xy-edge-stroke: rgb(56 214 255 / 0.55);
+  --xy-background-color: var(--canvas);
+  --xy-edge-stroke: var(--muted);
   --xy-edge-stroke-width: 1.5;
-  --xy-edge-stroke-selected: #7fe8ff;
-  --xy-connectionline-stroke: #38d6ff;
+  --xy-edge-stroke-selected: var(--accent);
+  --xy-connectionline-stroke: var(--accent);
   --xy-connectionline-stroke-width: 1.5;
-  --xy-selection-background-color: rgb(56 214 255 / 0.08);
-  --xy-selection-border: 1px dashed rgb(56 214 255 / 0.7);
-  --xy-minimap-background-color: rgb(6 22 42 / 0.92);
-  --xy-minimap-mask-background-color: rgb(2 10 23 / 0.7);
-  --xy-minimap-mask-stroke-color: rgb(56 214 255 / 0.6);
-  --xy-controls-button-background-color: rgb(8 28 54 / 0.96);
-  --xy-controls-button-background-color-hover: rgb(20 52 88 / 0.96);
-  --xy-controls-button-color: #38d6ff;
-  --xy-controls-button-color-hover: #e0f2fe;
-  --xy-controls-button-border-color: rgb(56 189 248 / 0.26);
-  --xy-controls-box-shadow: 0 0 14px -4px rgb(56 214 255 / 0.5);
+  --xy-selection-background-color: color-mix(in srgb, var(--accent) 6%, transparent);
+  --xy-selection-border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  --xy-minimap-background-color: var(--surface);
+  --xy-minimap-mask-background-color: color-mix(in srgb, var(--canvas) 70%, transparent);
+  --xy-minimap-mask-stroke-color: var(--line-strong);
+  --xy-minimap-mask-stroke-width: 1;
+  --xy-controls-button-background-color: var(--surface);
+  --xy-controls-button-background-color-hover: var(--sunken);
+  --xy-controls-button-color: var(--ink);
+  --xy-controls-button-color-hover: var(--ink);
+  --xy-controls-button-border-color: var(--line);
+  --xy-controls-box-shadow: var(--shadow);
   --xy-attribution-background-color: transparent;
-  --xy-resize-background-color: #38d6ff;
+  --xy-resize-background-color: var(--accent);
 }
-.lab-canvas .react-flow__attribution a { color: rgb(132 169 204 / 0.5); }
-.lab-canvas .react-flow__controls { border: 1px solid rgb(56 189 248 / 0.3); }
+.lab-canvas .react-flow__attribution a { color: var(--muted); }
+.lab-canvas .react-flow__controls {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.lab-canvas .react-flow__controls-button:last-child { border-bottom: none; }
 .lab-canvas .react-flow__controls-button svg { fill: currentColor; }
 .lab-canvas .react-flow__minimap {
-  border: 1px solid rgb(56 189 248 / 0.3);
-  box-shadow: 0 0 18px -6px rgb(56 214 255 / 0.5);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
 }
-.lab-canvas .react-flow__node:focus-visible { outline: 2px solid #38d6ff; outline-offset: 3px; }
-.lab-canvas .lab-edge .react-flow__edge-path { filter: drop-shadow(0 0 3px rgb(56 214 255 / 0.6)); }
-.lab-canvas .lab-edge.selected .react-flow__edge-path { stroke-width: 2.5; }
+.lab-canvas .react-flow__node:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.lab-canvas .lab-edge.selected .react-flow__edge-path { stroke-width: 2; }
 .lab-canvas .lab-handle {
-  width: 9px;
-  height: 9px;
-  border: 1px solid #020a17;
-  border-radius: 0;
-  background: #38d6ff;
-  box-shadow: 0 0 6px #38d6ff;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--accent);
+  border-radius: 9999px;
+  background: var(--surface);
   opacity: 0;
   transition: opacity 120ms;
 }

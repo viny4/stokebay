@@ -53,14 +53,15 @@ const MAX_FILES_PER_DROP = 50;
 const NOTE_SIZE = { w: 256, h: 150 };
 const PASTED_IMAGE_SIZE = { w: 260, h: 200 };
 
+// Calm, token-based fills: zones read as soft areas, objects as small solid blocks.
 const MINIMAP_COLORS: Record<string, string> = {
-  zone: 'rgb(56 189 248 / 0.14)',
-  note: '#38d6ff',
-  checklist: '#34d399',
-  link: '#a78bfa',
-  image: '#7dd3fc',
-  file: '#60a5fa',
-  part: '#fbbf24',
+  zone: 'var(--sunken)',
+  note: 'var(--line-strong)',
+  checklist: 'var(--line-strong)',
+  link: 'var(--line-strong)',
+  image: 'var(--line-strong)',
+  file: 'var(--line-strong)',
+  part: 'var(--line-strong)',
 };
 
 /** Checks a request with its schema; a problem becomes a toast and the call is skipped. */
@@ -297,7 +298,7 @@ export function LabWorkspace({ lab }: { lab: LabData }) {
       <div className="flex min-h-0 flex-1">
         <div
           ref={canvasRef}
-          className="lab-canvas relative min-w-0 flex-1"
+          className="lab-canvas relative min-w-0 flex-1 bg-canvas"
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
@@ -324,7 +325,7 @@ export function LabWorkspace({ lab }: { lab: LabData }) {
             deleteKeyCode={null}
             // Double-click edits objects; it must not also zoom.
             zoomOnDoubleClick={false}
-            colorMode="dark"
+            colorMode="system"
             fitView
             fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
             minZoom={0.1}
@@ -333,24 +334,20 @@ export function LabWorkspace({ lab }: { lab: LabData }) {
             aria-label="Lab canvas"
           >
             <Background
-              id="lab-fine"
-              variant={BackgroundVariant.Lines}
-              gap={32}
-              color="rgb(56 189 248 / 0.06)"
-            />
-            <Background
-              id="lab-coarse"
-              variant={BackgroundVariant.Lines}
-              gap={160}
-              color="rgb(56 189 248 / 0.14)"
+              id="lab-dots"
+              variant={BackgroundVariant.Dots}
+              gap={20}
+              size={1.2}
+              color="var(--line-strong)"
             />
             <Controls showInteractive={false} position="bottom-left" />
             <MiniMap
               pannable
               zoomable
               ariaLabel="Lab overview"
-              nodeColor={(n) => MINIMAP_COLORS[n.type ?? ''] ?? '#38d6ff'}
+              nodeColor={(n) => MINIMAP_COLORS[n.type ?? ''] ?? 'var(--line-strong)'}
               nodeStrokeWidth={0}
+              nodeBorderRadius={3}
             />
           </ReactFlow>
 
@@ -373,12 +370,10 @@ function blurActiveField() {
 function EmptyHint() {
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-      <div className="hud-frame px-10 py-8 text-center">
-        <p className="font-display text-sm tracking-[0.25em] text-status-active uppercase">
-          Empty Lab
-        </p>
-        <p className="mt-3 font-hud text-base text-hud-muted">
-          Drop files here, paste anything, or use the toolbar.
+      <div className="max-w-xs rounded-xl border border-line bg-surface px-8 py-6 text-center shadow-card">
+        <p className="text-[13px] font-semibold text-ink">This Lab is empty</p>
+        <p className="mt-1.5 text-sm text-muted">
+          Drop files here, paste anything, or add something from the toolbar.
         </p>
       </div>
     </div>
@@ -389,9 +384,9 @@ function DropOverlay() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-3 z-10 flex items-center justify-center border-2 border-dashed border-status-active/80 bg-status-active/[0.06] shadow-[inset_0_0_60px_-10px_rgb(56_214_255/0.6),0_0_30px_-8px_rgb(56_214_255/0.7)]"
+      className="pointer-events-none absolute inset-3 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-accent/60 bg-accent/5"
     >
-      <p className="font-display text-base tracking-[0.3em] text-status-active uppercase drop-shadow-[0_0_10px_rgb(56_214_255/0.9)]">
+      <p className="rounded-md bg-raised px-3 py-1.5 text-[13px] font-medium text-ink shadow-pop">
         Drop to add to the Lab
       </p>
     </div>

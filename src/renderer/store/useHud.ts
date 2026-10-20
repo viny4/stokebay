@@ -25,7 +25,7 @@ import type {
   World,
 } from '../../shared/types';
 
-export type View = 'grid' | 'archived' | 'lab';
+export type View = 'grid' | 'archived' | 'lab' | 'universe';
 
 export type DialogState =
   | { kind: 'none' }
@@ -75,7 +75,7 @@ export interface HudState {
   tick(): void;
   setWorldFilter(id: Id | null): void;
   setSearch(search: string): void;
-  setView(view: 'grid' | 'archived'): void;
+  setView(view: Exclude<View, 'lab'>): void;
 
   /** Creates a project from a blueprint; it appears on the grid. */
   ignite(input: IgniteInput): Promise<ProjectSummary>;

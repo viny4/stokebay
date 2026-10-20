@@ -1,4 +1,4 @@
-// World toggle chips with an inline "+ New world" input, in the Ignite screen's style.
+// World toggle chips with an inline "+ New world" input, used by the New project sheet.
 // Same behaviour as the project dialog's picker; kept separate so each screen can be styled
 // without touching the other.
 import { useState, type KeyboardEvent } from 'react';
@@ -61,9 +61,7 @@ export function WorldChips({
 
   return (
     <fieldset className="flex flex-col gap-1.5" disabled={disabled}>
-      <legend className="mb-1.5 font-hud text-xs uppercase tracking-widest text-hud-muted">
-        Worlds
-      </legend>
+      <legend className="mb-1.5 text-[13px] font-medium text-ink">Worlds</legend>
       <div className="flex flex-wrap items-center gap-2">
         {worlds.map((w) => {
           const on = selected.includes(w.id);
@@ -73,10 +71,10 @@ export function WorldChips({
               type="button"
               aria-pressed={on}
               onClick={() => onChange(toggleId(selected, w.id))}
-              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1 text-xs transition-colors ${
+              className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs transition-colors ${
                 on
-                  ? 'border-status-active/70 bg-status-active/15 text-status-active'
-                  : 'border-hud-line text-hud-muted hover:text-hud-text'
+                  ? 'border-accent bg-accent/10 text-ink'
+                  : 'border-line bg-surface text-muted hover:bg-hover hover:text-ink'
               }`}
             >
               <span
@@ -104,24 +102,24 @@ export function WorldChips({
             placeholder="World name, Enter to add"
             aria-label="New world name"
             aria-invalid={error ? true : undefined}
-            className={`${inputClass} w-52 py-1 text-xs`}
+            className={`${inputClass} h-7 w-52 rounded-full py-0 text-xs`}
           />
         ) : (
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="rounded-md border border-dashed border-hud-line px-3 py-1 text-xs text-hud-muted hover:text-hud-text"
+            className="inline-flex h-7 items-center rounded-full px-3 text-xs text-muted hover:bg-hover hover:text-ink"
           >
             + New world
           </button>
         )}
       </div>
       {error ? (
-        <p role="alert" className="text-xs text-red-300">
+        <p role="alert" className="text-xs text-danger">
           {error}
         </p>
       ) : worlds.length === 0 && !adding ? (
-        <p className="text-xs text-hud-muted">Worlds group your projects, like Coding or Music.</p>
+        <p className="text-xs text-muted">Worlds group your projects, like Coding or Music.</p>
       ) : null}
     </fieldset>
   );

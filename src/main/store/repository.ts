@@ -18,7 +18,7 @@ import type {
   World,
 } from '../../shared/types';
 
-export const STORE_VERSION = 3;
+export const STORE_VERSION = 4;
 
 export interface StoreData {
   version: typeof STORE_VERSION;

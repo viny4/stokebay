@@ -31,7 +31,7 @@ export function ProjectDialog({ dialog }: { dialog: Extract<DialogState, { kind:
         onClose={closeDialog}
         footer={<Button onClick={closeDialog}>Close</Button>}
       >
-        <p className="text-sm text-hud-muted">This project no longer exists.</p>
+        <p className="text-sm text-muted">This project no longer exists.</p>
       </Dialog>
     );
   }
@@ -172,7 +172,7 @@ function ProjectForm({
                 className={inputClass}
               >
                 {SETTABLE_STATUSES.map((s) => (
-                  <option key={s} value={s} className="bg-hud-bg">
+                  <option key={s} value={s}>
                     {STATUS_LABEL[s]}
                   </option>
                 ))}
@@ -190,7 +190,7 @@ function ProjectForm({
             // The id goes on the group, not the button, so the button keeps its own name.
             <div id={id} role="group" aria-label="Folder" className="flex flex-col gap-2">
               {values.path ? (
-                <code className="block break-all rounded-md border border-hud-line bg-black/30 px-3 py-2 font-mono text-xs text-hud-text">
+                <code className="selectable block break-all rounded-md bg-sunken px-3 py-2 font-mono text-xs text-ink">
                   {values.path}
                 </code>
               ) : null}
@@ -209,7 +209,7 @@ function ProjectForm({
         </Field>
 
         {serverError ? (
-          <p role="alert" className="text-sm text-red-300">
+          <p role="alert" className="text-sm text-danger">
             {serverError}
           </p>
         ) : null}
@@ -273,9 +273,7 @@ function WorldPicker({
 
   return (
     <fieldset className="flex flex-col gap-1.5" aria-describedby={error ? legendId : undefined}>
-      <legend className="mb-1.5 font-hud text-xs uppercase tracking-widest text-hud-muted">
-        Worlds
-      </legend>
+      <legend className="mb-1.5 text-[13px] font-medium text-ink">Worlds</legend>
       <div className="flex flex-wrap items-center gap-2">
         {worlds.map((w) => {
           const on = selected.includes(w.id);
@@ -285,10 +283,10 @@ function WorldPicker({
               type="button"
               aria-pressed={on}
               onClick={() => onChange(toggleId(selected, w.id))}
-              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1 text-xs transition-colors ${
+              className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition-colors ${
                 on
-                  ? 'border-status-active/70 bg-status-active/15 text-status-active'
-                  : 'border-hud-line text-hud-muted hover:text-hud-text'
+                  ? 'border-accent bg-accent/10 text-ink'
+                  : 'border-line text-muted hover:bg-hover hover:text-ink'
               }`}
             >
               <span
@@ -316,28 +314,28 @@ function WorldPicker({
             placeholder="World name, Enter to add"
             aria-label="New world name"
             aria-invalid={worldError ? true : undefined}
-            className={`${inputClass} w-52 py-1 text-xs`}
+            className={`${inputClass} h-7 w-52 rounded-full py-0 text-xs`}
           />
         ) : (
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="rounded-md border border-dashed border-hud-line px-3 py-1 text-xs text-hud-muted hover:text-hud-text"
+            className="h-7 rounded-full border border-dashed border-line-strong px-2.5 text-xs text-muted hover:bg-hover hover:text-ink"
           >
             + New world
           </button>
         )}
       </div>
       {worldError ? (
-        <p role="alert" className="text-xs text-red-300">
+        <p role="alert" className="text-xs text-danger">
           {worldError}
         </p>
       ) : error ? (
-        <p id={legendId} role="alert" className="text-xs text-red-300">
+        <p id={legendId} role="alert" className="text-xs text-danger">
           {error}
         </p>
       ) : worlds.length === 0 && !adding ? (
-        <p className="text-xs text-hud-muted">Worlds group your projects, like Coding or Music.</p>
+        <p className="text-xs text-muted">Worlds group your projects, like Coding or Music.</p>
       ) : null}
     </fieldset>
   );

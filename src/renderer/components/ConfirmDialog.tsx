@@ -35,8 +35,12 @@ export function ConfirmDialog({ dialog }: { dialog: Extract<DialogState, { kind:
         </>
       }
     >
-      <p className="text-sm text-hud-text">{dialog.message}</p>
-      {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
+      <p className="text-sm leading-relaxed text-ink">{dialog.message}</p>
+      {error ? (
+        <p role="alert" className="mt-3 text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
     </Dialog>
   );
 }

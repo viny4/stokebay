@@ -1,13 +1,12 @@
 import { NodeResizer, type NodeProps, type OnResizeEnd } from '@xyflow/react';
-import { memo, useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { labMoveNodesInput, labRenameZoneInput } from '../../../shared/schemas';
 import { guard, useHud } from '../../store/useHud';
-import { withAlpha } from '../ui';
 import { firstIssue } from './lab-actions';
 import type { ZoneNode as ZoneNodeType } from './lab-nodes';
 import { Handles } from './LabFrame';
 
-const DEFAULT_COLOR = '#38bdf8';
+const DEFAULT_COLOR = '#4f7cac';
 export const ZONE_MIN = { w: 160, h: 100 };
 
 function ZoneNodeView({ id, data, selected }: NodeProps<ZoneNodeType>) {
@@ -59,32 +58,22 @@ function ZoneNodeView({ id, data, selected }: NodeProps<ZoneNodeType>) {
 
   return (
     <div
-      className="relative h-full w-full"
-      style={
-        {
-          border: `1px dashed ${withAlpha(color, selected ? 0.9 : 0.45)}`,
-          background: `linear-gradient(180deg, ${withAlpha(color, 0.09)}, ${withAlpha(color, 0.03)})`,
-          boxShadow: selected ? `0 0 24px -4px ${withAlpha(color, 0.5)} inset` : undefined,
-        } as CSSProperties
-      }
+      className={`relative h-full w-full rounded-xl border transition-[border-color,box-shadow] ${
+        selected ? 'border-accent ring-2 ring-accent/25' : 'border-line-strong'
+      }`}
+      style={{ background: 'color-mix(in srgb, var(--sunken) 55%, transparent)' }}
     >
       <NodeResizer
         isVisible={selected}
         minWidth={ZONE_MIN.w}
         minHeight={ZONE_MIN.h}
-        color={color}
+        color="var(--accent)"
         onResizeEnd={onResizeEnd}
       />
       <Handles />
-      <div
-        className="absolute -top-px left-0 flex max-w-full items-center gap-2 px-3 py-1 font-hud text-xs tracking-[0.25em] uppercase"
-        style={{
-          background: withAlpha(color, 0.16),
-          color,
-          clipPath: 'polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%)',
-        }}
-      >
-        <span aria-hidden>◇</span>
+      <div className="absolute top-2 left-3 flex max-w-[calc(100%-1.5rem)] items-center gap-2 text-xs font-medium text-ink">
+        {/* The zone's own colour, kept to a small dot so the canvas stays calm. */}
+        <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
         {editing ? (
           <input
             autoFocus
@@ -100,11 +89,11 @@ function ZoneNodeView({ id, data, selected }: NodeProps<ZoneNodeType>) {
             }}
             aria-label="Zone name"
             maxLength={60}
-            className="nodrag w-44 bg-black/40 px-1.5 py-0.5 tracking-[0.15em] text-hud-text uppercase outline-none"
+            className="nodrag w-44 rounded border border-accent bg-surface px-1.5 py-0.5 text-ink outline-none"
           />
         ) : (
           <span
-            className="truncate pr-3"
+            className="truncate"
             title="Double-click to rename"
             onDoubleClick={() => {
               setTitle(module.title);

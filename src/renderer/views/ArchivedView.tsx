@@ -16,24 +16,21 @@ export function ArchivedView() {
   const worldById = useMemo(() => new Map(worlds.map((w) => [w.id, w])), [worlds]);
 
   return (
-    <section aria-labelledby="archived-heading" className="mx-auto max-w-3xl px-6 py-8">
-      <h2
-        id="archived-heading"
-        className="font-display text-sm tracking-[0.25em] text-status-active uppercase"
-      >
-        Archived projects
+    <section aria-labelledby="archived-heading" className="mx-auto max-w-3xl px-8 py-10">
+      <h2 id="archived-heading" className="text-3xl font-semibold tracking-tight text-ink">
+        Archive
       </h2>
-      <p className="mt-2 text-sm text-hud-muted">
+      <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
         Archived projects are hidden from the grid but keep all their notes, links and history.
         Restore one to bring it back, or delete it permanently.
       </p>
 
       {archived.length === 0 ? (
-        <p className="mt-10 hud-frame p-10 text-center font-hud text-sm text-hud-muted">
+        <p className="mt-8 rounded-lg border border-dashed border-line px-6 py-12 text-center text-sm text-muted">
           Nothing archived.
         </p>
       ) : (
-        <ul className="mt-6 flex flex-col gap-3">
+        <ul className="panel mt-8 flex flex-col divide-y divide-line overflow-hidden">
           <AnimatePresence initial={false}>
             {archived.map((p) => (
               <ArchivedRow key={p.id} project={p} now={now} worldById={worldById} />
@@ -83,18 +80,18 @@ const ArchivedRow = memo(function ArchivedRow({
       aria-labelledby={titleId}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -24, transition: { duration: 0.18 } }}
-      className="flex flex-wrap items-center gap-4 hud-frame hud-frame-sm px-4 py-3"
+      exit={{ opacity: 0, x: -8, transition: { duration: 0.16 } }}
+      className="flex flex-wrap items-center gap-4 px-4 py-3"
     >
       <div className="min-w-0 flex-1">
-        <h3 id={titleId} className="truncate text-sm font-medium text-hud-text">
+        <h3 id={titleId} className="truncate text-sm font-medium text-ink">
           {project.title}
         </h3>
-        <div className="mt-1 flex flex-wrap items-center gap-3">
+        <div className="mt-1 flex flex-wrap items-center gap-2.5">
           <StatusBadge status={project.status} />
           {project.archivedAt !== null ? (
-            <span className="font-hud text-xs text-hud-muted">
-              archived {formatRelative(project.archivedAt, now)}
+            <span className="text-xs text-muted">
+              Archived {formatRelative(project.archivedAt, now)}
             </span>
           ) : null}
           {projectWorlds.map((w) => (
@@ -103,7 +100,7 @@ const ArchivedRow = memo(function ArchivedRow({
         </div>
       </div>
       <div className="flex gap-2">
-        <Button variant="primary" aria-label={`Restore ${project.title}`} onClick={restore}>
+        <Button aria-label={`Restore ${project.title}`} onClick={restore}>
           Restore
         </Button>
         <Button

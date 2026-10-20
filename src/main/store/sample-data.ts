@@ -5,14 +5,14 @@ import type { ActivityEvent, Entry, EventType, Pause, Project, World } from '../
 import { STORE_VERSION, type StoreData } from './repository';
 
 export const WORLD_PALETTE = [
-  '#38bdf8',
-  '#f472b6',
-  '#facc15',
-  '#4ade80',
-  '#c084fc',
-  '#fb923c',
-  '#2dd4bf',
-  '#f87171',
+  '#5b8fd1',
+  '#d2668f',
+  '#c9a03a',
+  '#5fa77a',
+  '#9277cc',
+  '#d9733f',
+  '#3f9e9a',
+  '#c75c5c',
 ];
 
 export function createSampleData(now: number, newId: () => string): StoreData {

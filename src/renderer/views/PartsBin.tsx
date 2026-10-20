@@ -7,7 +7,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type FormEvent,
   type KeyboardEvent,
   type ReactNode,
@@ -34,7 +33,7 @@ import {
   parseQty,
   summarizeParts,
 } from '../components/lab/parts-math';
-import { Button, inputClass, withAlpha } from '../components/ui';
+import { Button, inputClass } from '../components/ui';
 import { errorMessage, guard, useHud } from '../store/useHud';
 
 type Issue = { path: readonly PropertyKey[]; message: string; code?: string };
@@ -92,8 +91,8 @@ export function PartsBin({ lab, onClose }: { lab: LabData; onClose: () => void }
   return (
     <motion.aside
       aria-label="Parts Bin"
-      // The frame is an inner div: .hud-frame sets position: relative, which would beat `fixed`.
-      className="fixed top-14 right-0 bottom-0 z-30 w-[560px] max-w-full drop-shadow-[0_0_24px_rgb(56_189_248/0.25)]"
+      // The frame is an inner div so its styling never fights the `fixed` positioning here.
+      className="fixed top-14 right-0 bottom-0 z-30 w-[560px] max-w-full"
       initial={{ x: '100%', opacity: 0.4 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: '100%', opacity: 0.4 }}
@@ -102,22 +101,12 @@ export function PartsBin({ lab, onClose }: { lab: LabData; onClose: () => void }
       // Pasting a link into a field must not also drop a link card onto the canvas.
       onPaste={(event) => event.stopPropagation()}
     >
-      <div
-        className="hud-frame flex h-full flex-col"
-        style={
-          {
-            '--frame-color': 'rgb(56 189 248 / 0.5)',
-            // Opaque: canvas cards behind the panel would otherwise show through the table.
-            '--frame-fill': 'rgb(8 28 54)',
-          } as CSSProperties
-        }
-      >
-        <header className="flex shrink-0 items-center justify-between border-b border-hud-line px-5 py-3">
+      {/* Opaque: canvas cards behind the panel would otherwise show through the table. */}
+      <div className="flex h-full flex-col border-l border-line bg-raised shadow-pop">
+        <header className="flex shrink-0 items-center justify-between border-b border-line px-5 py-3">
           <div className="flex items-baseline gap-3">
-            <h2 className="font-display text-sm tracking-[0.2em] text-status-active uppercase">
-              Parts Bin
-            </h2>
-            <span className="font-hud text-xs tracking-wider text-hud-muted uppercase">
+            <h2 className="text-[15px] font-semibold text-ink">Parts Bin</h2>
+            <span className="text-xs text-muted">
               {summary.count} {summary.count === 1 ? 'part' : 'parts'}
             </span>
           </div>
@@ -125,7 +114,7 @@ export function PartsBin({ lab, onClose }: { lab: LabData; onClose: () => void }
             type="button"
             aria-label="Close Parts Bin"
             onClick={onClose}
-            className="rounded px-2 text-lg leading-none text-hud-muted hover:text-hud-text"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-lg leading-none text-muted hover:bg-hover hover:text-ink"
           >
             ×
           </button>
@@ -135,10 +124,10 @@ export function PartsBin({ lab, onClose }: { lab: LabData; onClose: () => void }
           <SummaryStrip summary={summary} installedShare={installedShare} />
 
           {offerToggle ? (
-            <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs text-hud-muted">
+            <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs text-muted">
               <input
                 type="checkbox"
-                className="accent-[var(--color-status-active)]"
+                className="accent-[var(--color-accent)]"
                 checked={project.partsBin}
                 onChange={(e) => {
                   const on = e.target.checked;
@@ -154,7 +143,7 @@ export function PartsBin({ lab, onClose }: { lab: LabData; onClose: () => void }
           {parts.length === 0 ? (
             <EmptyState />
           ) : (
-            <table className="mt-4 w-full table-fixed border-collapse text-sm">
+            <table className="mt-4 w-full table-fixed border-collapse border border-line bg-surface text-sm">
               <colgroup>
                 <col />
                 <col className="w-11" />
@@ -165,13 +154,13 @@ export function PartsBin({ lab, onClose }: { lab: LabData; onClose: () => void }
                 <col className="w-7" />
               </colgroup>
               <thead>
-                <tr className="border-b border-hud-line font-hud text-[11px] tracking-widest text-hud-muted uppercase">
-                  <th className="px-1.5 py-1.5 text-left font-semibold">Part · notes</th>
-                  <th className="px-1.5 py-1.5 text-right font-semibold">Qty</th>
-                  <th className="px-1.5 py-1.5 text-right font-semibold">Each</th>
-                  <th className="px-1.5 py-1.5 text-right font-semibold">Total</th>
-                  <th className="px-1.5 py-1.5 text-left font-semibold">Status</th>
-                  <th className="px-1.5 py-1.5 text-left font-semibold">Supplier</th>
+                <tr className="border-b border-line bg-sunken text-xs text-muted">
+                  <th className="px-2 py-1.5 text-left font-medium">Part · notes</th>
+                  <th className="px-2 py-1.5 text-right font-medium">Qty</th>
+                  <th className="px-2 py-1.5 text-right font-medium">Each</th>
+                  <th className="px-2 py-1.5 text-right font-medium">Total</th>
+                  <th className="px-2 py-1.5 text-left font-medium">Status</th>
+                  <th className="px-2 py-1.5 text-left font-medium">Supplier</th>
                   <th>
                     <span className="sr-only">Remove</span>
                   </th>
@@ -204,11 +193,14 @@ function SummaryStrip({
   installedShare: number;
 }) {
   return (
-    <section aria-label="Parts summary" className="hud-frame hud-frame-sm px-4 py-3">
+    <section
+      aria-label="Parts summary"
+      className="rounded-lg border border-line bg-surface px-4 py-3 shadow-card"
+    >
       <div className="grid grid-cols-3 gap-3">
         <Stat label="Total cost">
           {summary.total.length === 0 ? (
-            <span className="text-hud-muted">—</span>
+            <span className="text-muted">—</span>
           ) : (
             summary.total.map((a) => (
               <span key={a.currency} className="block">
@@ -223,9 +215,7 @@ function SummaryStrip({
           {summary.missing > 0 ? <Sub>{summary.missing} not in hand yet</Sub> : null}
         </Stat>
         <Stat label="To order">
-          <span style={{ color: summary.toOrder > 0 ? PART_STATUS_HEX.needed : undefined }}>
-            {summary.toOrder} still to order
-          </span>
+          <span>{summary.toOrder} still to order</span>
           {summary.toSpend.length > 0 ? <Sub>{formatAmounts(summary.toSpend)} to spend</Sub> : null}
         </Stat>
       </div>
@@ -235,14 +225,11 @@ function SummaryStrip({
         aria-valuemin={0}
         aria-valuemax={summary.count}
         aria-valuenow={summary.installed}
-        className="mt-3 h-1 overflow-hidden bg-white/10"
+        className="mt-3 h-1 overflow-hidden rounded-full bg-sunken"
       >
         <motion.div
-          className="h-full"
-          style={{
-            background: PART_STATUS_HEX.installed,
-            boxShadow: `0 0 8px ${withAlpha(PART_STATUS_HEX.installed, 0.7)}`,
-          }}
+          className="h-full rounded-full"
+          style={{ background: PART_STATUS_HEX.installed }}
           initial={false}
           animate={{ width: `${Math.round(installedShare * 100)}%` }}
           transition={{ duration: 0.3 }}
@@ -255,20 +242,20 @@ function SummaryStrip({
 function Stat({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <p className="font-hud text-[11px] tracking-widest text-hud-muted uppercase">{label}</p>
-      <div className="mt-0.5 font-hud text-[15px] tabular-nums text-hud-text">{children}</div>
+      <p className="text-xs text-muted">{label}</p>
+      <div className="mt-0.5 text-[13px] font-semibold tabular-nums text-ink">{children}</div>
     </div>
   );
 }
 
 function Sub({ children }: { children: ReactNode }) {
-  return <span className="block text-xs font-normal text-hud-muted">{children}</span>;
+  return <span className="block text-xs font-normal text-muted">{children}</span>;
 }
 
 function EmptyState() {
   return (
-    <div className="mt-6 px-2 text-sm leading-relaxed text-hud-muted">
-      <p className="font-hud text-base tracking-wider text-hud-text uppercase">No parts yet</p>
+    <div className="mt-6 px-2 text-sm leading-relaxed text-muted">
+      <p className="text-[13px] font-semibold text-ink">No parts yet</p>
       <p className="mt-2">
         The Parts Bin keeps track of everything a physical build needs: motors, sensors, boards,
         screws. Note how many, what one costs and where to buy it, then move each part from{' '}
@@ -284,7 +271,16 @@ function EmptyState() {
 }
 
 function StatusWord({ status }: { status: PartStatus }) {
-  return <span style={{ color: PART_STATUS_HEX[status] }}>{PART_STATUS_LABEL[status]}</span>;
+  return (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap text-ink">
+      <span
+        aria-hidden
+        className="inline-block h-1.5 w-1.5 rounded-full"
+        style={{ background: PART_STATUS_HEX[status] }}
+      />
+      {PART_STATUS_LABEL[status]}
+    </span>
+  );
 }
 
 // ---- One row ----
@@ -331,14 +327,14 @@ const PartRow = memo(function PartRow({ part, nodeId }: { part: Part; nodeId: Id
   const hex = PART_STATUS_HEX[part.status];
 
   return (
-    <tr className="group border-b border-hud-line/60 align-top hover:bg-white/[0.025]">
+    <tr className="group border-b border-line align-top last:border-b-0 hover:bg-hover">
       <td className="px-0.5 py-1">
         <InlineText
           label={`name of ${part.name}`}
           value={part.name}
           onSave={(draft) => save({ name: draft })}
         >
-          <span className="font-hud text-[14px] text-hud-text" title={part.name}>
+          <span className="text-sm font-medium text-ink" title={part.name}>
             {part.name}
           </span>
         </InlineText>
@@ -349,11 +345,11 @@ const PartRow = memo(function PartRow({ part, nodeId }: { part: Part; nodeId: Id
           onSave={(draft) => save({ notes: draft })}
         >
           {part.notes ? (
-            <span className="text-xs text-hud-muted" title={part.notes}>
+            <span className="text-xs text-muted" title={part.notes}>
               {part.notes}
             </span>
           ) : (
-            <span className="text-xs text-hud-muted/50 group-hover:text-hud-muted">+ note</span>
+            <span className="text-xs text-muted/50 group-hover:text-muted">+ note</span>
           )}
         </InlineText>
       </td>
@@ -374,32 +370,35 @@ const PartRow = memo(function PartRow({ part, nodeId }: { part: Part; nodeId: Id
       <td className="relative px-0.5 py-1">
         <CostCell part={part} save={save} />
       </td>
-      <td className="px-1.5 py-1.5 text-right text-xs tabular-nums text-hud-text/90">
-        {total === null ? (
-          <span className="text-hud-muted">—</span>
-        ) : (
-          formatMoney(total, part.currency)
-        )}
+      <td className="px-1.5 py-1.5 text-right text-xs tabular-nums text-ink">
+        {total === null ? <span className="text-muted">—</span> : formatMoney(total, part.currency)}
       </td>
       <td className="px-0.5 py-1">
-        <select
-          aria-label={`Status of ${part.name}`}
-          value={part.status}
-          onChange={(e) => {
-            const status = e.target.value as PartStatus;
-            void save({ status }).then((err) => {
-              if (err) showToast(err, 'error');
-            });
-          }}
-          className="w-full cursor-pointer rounded border px-1.5 py-1 font-hud text-xs tracking-wider uppercase focus:outline-none"
-          style={{ color: hex, borderColor: withAlpha(hex, 0.5), background: withAlpha(hex, 0.12) }}
-        >
-          {PART_STATUSES.map((s) => (
-            <option key={s} value={s} className="bg-hud-bg text-hud-text">
-              {PART_STATUS_LABEL[s]}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          {/* The status colour as a small dot inside the select, so the cell stays neutral. */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-2.5 h-1.5 w-1.5 -translate-y-1/2 rounded-full"
+            style={{ background: hex }}
+          />
+          <select
+            aria-label={`Status of ${part.name}`}
+            value={part.status}
+            onChange={(e) => {
+              const status = e.target.value as PartStatus;
+              void save({ status }).then((err) => {
+                if (err) showToast(err, 'error');
+              });
+            }}
+            className="w-full cursor-pointer rounded-md border border-line bg-surface py-1 pr-1 pl-5 text-xs text-ink hover:border-line-strong focus:border-accent focus:outline-none"
+          >
+            {PART_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {PART_STATUS_LABEL[s]}
+              </option>
+            ))}
+          </select>
+        </div>
       </td>
       <td className="relative px-0.5 py-1">
         <SupplierCell part={part} save={save} />
@@ -410,7 +409,7 @@ const PartRow = memo(function PartRow({ part, nodeId }: { part: Part; nodeId: Id
           aria-label={`Remove ${part.name}`}
           title="Remove part"
           onClick={remove}
-          className="rounded px-1.5 py-0.5 text-base leading-none text-hud-muted/60 hover:bg-red-500/15 hover:text-red-300 focus-visible:text-red-300"
+          className="rounded-md px-1.5 py-0.5 text-base leading-none text-muted/60 hover:bg-danger/10 hover:text-danger focus-visible:text-danger"
         >
           ×
         </button>
@@ -470,10 +469,10 @@ function useInlineEdit<T>(onSave: (draft: T) => Promise<string | null>) {
 }
 
 const cellButton =
-  'block w-full truncate rounded px-1.5 py-1 text-left hover:bg-white/[0.06] cursor-text';
+  'block w-full truncate rounded-md px-1.5 py-1 text-left hover:bg-hover cursor-text';
 const cellInput =
-  'w-full rounded border border-status-active/60 bg-black/40 px-1.5 py-1 text-sm text-hud-text focus:outline-none';
-const errorText = 'mt-1 text-[11px] leading-snug text-red-300';
+  'w-full rounded-md border border-accent bg-surface px-1.5 py-1 text-sm text-ink focus:outline-none focus:ring-3 focus:ring-accent/15';
+const errorText = 'mt-1 text-[11px] leading-snug text-danger';
 
 function InlineText({
   label,
@@ -521,7 +520,7 @@ function InlineText({
         onChange={(e) => edit.setDraft(e.target.value)}
         onBlur={() => void edit.commit(draft)}
         onKeyDown={(e) => edit.onKeyDown(e, draft)}
-        className={`${cellInput} ${alignClass} ${edit.error ? 'border-red-400/70' : ''}`}
+        className={`${cellInput} ${alignClass} ${edit.error ? 'border-danger/70' : ''}`}
       />
       {edit.error ? (
         <p role="alert" className={errorText}>
@@ -550,15 +549,7 @@ function Popover({
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onLeave();
       }}
     >
-      <div
-        className="hud-frame hud-frame-sm p-2"
-        style={
-          {
-            '--frame-color': 'rgb(56 214 255 / 0.7)',
-            '--frame-fill': 'var(--color-hud-raised)',
-          } as CSSProperties
-        }
-      >
+      <div className="rounded-lg border border-line bg-raised p-2 shadow-pop">
         {children}
         {error ? (
           <p role="alert" className={errorText}>
@@ -588,7 +579,7 @@ function CostCell({ part, save }: { part: Part; save: Save }) {
         }
       >
         {part.unitCostMinor === null ? (
-          <span className="text-hud-muted/60 group-hover:text-hud-muted">+ price</span>
+          <span className="text-muted/60 group-hover:text-muted">+ price</span>
         ) : (
           formatMoney(part.unitCostMinor, part.currency)
         )}
@@ -617,7 +608,7 @@ function CostCell({ part, save }: { part: Part; save: Save }) {
           value={draft.currency}
           onChange={(e) => edit.setDraft({ ...draft, currency: e.target.value.toUpperCase() })}
           onKeyDown={(e) => edit.onKeyDown(e, draft)}
-          className={`${cellInput} w-16 shrink-0 text-center uppercase`}
+          className={`${cellInput} w-16 shrink-0 text-center`}
         />
       </div>
     </Popover>
@@ -636,7 +627,7 @@ function SupplierCell({ part, save }: { part: Part; save: Save }) {
           title={url}
           aria-label={`Open supplier for ${part.name}: ${hostOf(url)}`}
           onClick={() => guard(() => window.api.openUrl(url))}
-          className="min-w-0 flex-1 truncate rounded px-1.5 py-1 text-left text-xs text-status-active underline-offset-2 hover:underline"
+          className="min-w-0 flex-1 truncate rounded-md px-1.5 py-1 text-left text-xs text-ink underline-offset-2 hover:underline"
         >
           {hostOf(url)}
         </button>
@@ -645,7 +636,7 @@ function SupplierCell({ part, save }: { part: Part; save: Save }) {
           aria-label={`Edit supplier link for ${part.name}`}
           title="Edit link"
           onClick={() => edit.start(url)}
-          className="shrink-0 rounded px-1 py-1 text-hud-muted opacity-0 group-hover:opacity-100 hover:text-hud-text focus-visible:opacity-100"
+          className="shrink-0 rounded-md px-1 py-1 text-muted opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
         >
           <PencilIcon />
         </button>
@@ -655,7 +646,7 @@ function SupplierCell({ part, save }: { part: Part; save: Save }) {
         type="button"
         aria-label={`Add supplier link for ${part.name}`}
         onClick={() => edit.start('')}
-        className={`${cellButton} text-xs text-hud-muted/60 group-hover:text-hud-muted`}
+        className={`${cellButton} text-xs text-muted/60 group-hover:text-muted`}
       >
         + link
       </button>
@@ -778,7 +769,7 @@ function AddPartForm({
   };
 
   const invalid = (field: AddField) =>
-    error?.field === field ? 'border-red-400/70 focus:border-red-400/70' : '';
+    error?.field === field ? 'border-danger/70 focus:border-danger/70' : '';
   // inputClass sets w-full, which would beat the fixed widths below and squeeze the name field.
   const small = `${inputClass.replace('w-full', '')} px-2 py-1.5`;
 
@@ -786,11 +777,9 @@ function AddPartForm({
     <form
       aria-label="Add a part"
       onSubmit={(e) => void submit(e)}
-      className="shrink-0 border-t border-hud-line bg-black/20 px-4 py-3"
+      className="shrink-0 border-t border-line bg-sunken px-4 py-3"
     >
-      <p className="mb-2 font-hud text-[11px] tracking-widest text-hud-muted uppercase">
-        Add a part
-      </p>
+      <p className="mb-2 text-[13px] font-semibold text-ink">Add a part</p>
       <div className="flex gap-2">
         <input
           ref={nameRef}
@@ -825,7 +814,7 @@ function AddPartForm({
           maxLength={3}
           value={currency ?? defaultCurrency}
           onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-          className={`${small} w-16 text-center uppercase ${invalid('currency')}`}
+          className={`${small} w-16 text-center ${invalid('currency')}`}
         />
       </div>
       <div className="mt-2 flex gap-2">
@@ -843,7 +832,7 @@ function AddPartForm({
         </Button>
       </div>
       {error ? (
-        <p role="alert" className="mt-2 text-xs text-red-300">
+        <p role="alert" className="mt-2 text-xs text-danger">
           {error.message}
         </p>
       ) : null}

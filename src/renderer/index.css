@@ -1,25 +1,81 @@
-/* Fonts are bundled with the app (SIL Open Font License), so the look works offline. */
-@import '@fontsource/orbitron/500.css';
-@import '@fontsource/orbitron/700.css';
-@import '@fontsource/rajdhani/500.css';
-@import '@fontsource/rajdhani/600.css';
 @import 'tailwindcss';
 
-/* Hologram blue: electric blue and cyan light on deep navy. */
+/*
+ * Colours are plain CSS variables so light and dark mode swap in one place; Tailwind's
+ * utilities (bg-surface, text-muted, border-line…) point at them.
+ * Warm paper neutrals with one accent: ember orange, the "stoke the fire" colour.
+ */
+:root {
+  color-scheme: light;
+  --canvas: #fbfaf8;
+  --sidebar: #f3f1ed;
+  --surface: #ffffff;
+  --raised: #ffffff;
+  --sunken: #f4f2ee;
+  --hover: rgb(28 25 23 / 0.05);
+  --line: rgb(28 25 23 / 0.1);
+  --line-strong: rgb(28 25 23 / 0.18);
+  --ink: #1c1917;
+  --muted: #78716c;
+  --accent: #d9571f;
+  --accent-ink: #ffffff;
+  --active: #d9571f;
+  --paused: #4f7cac;
+  --done: #3d8b5f;
+  --idea: #8466c4;
+  --danger: #c2410c;
+  --shadow: 0 1px 2px rgb(28 25 23 / 0.06), 0 1px 1px rgb(28 25 23 / 0.03);
+  --shadow-pop: 0 12px 32px -8px rgb(28 25 23 / 0.22), 0 2px 6px rgb(28 25 23 / 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --canvas: #1b1a19;
+    --sidebar: #161514;
+    --surface: #232120;
+    --raised: #2b2928;
+    --sunken: #161514;
+    --hover: rgb(255 255 255 / 0.06);
+    --line: rgb(255 255 255 / 0.09);
+    --line-strong: rgb(255 255 255 / 0.16);
+    --ink: #ece9e4;
+    --muted: #9c968f;
+    --accent: #ee6a32;
+    --accent-ink: #ffffff;
+    --active: #ee6a32;
+    --paused: #7aa2cc;
+    --done: #62b385;
+    --idea: #a68ee0;
+    --danger: #f08a5d;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-pop: 0 16px 40px -8px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.3);
+  }
+}
+
 @theme {
-  --color-hud-bg: #020a17;
-  --color-hud-panel: rgb(6 22 42 / 0.84);
-  --color-hud-raised: rgb(8 28 54 / 0.96);
-  --color-hud-line: rgb(56 189 248 / 0.26);
-  --color-hud-text: #e0f2fe;
-  --color-hud-muted: #84a9cc;
-  --color-status-active: #38d6ff;
-  --color-status-paused: #fbbf24;
-  --color-status-done: #34d399;
-  --color-status-idea: #a78bfa;
-  /* Wide sci-fi letters for headings, squared letters for HUD labels. */
-  --font-display: 'Orbitron', ui-sans-serif, system-ui, sans-serif;
-  --font-hud: 'Rajdhani', ui-sans-serif, system-ui, sans-serif;
+  --color-canvas: var(--canvas);
+  --color-sidebar: var(--sidebar);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-sunken: var(--sunken);
+  --color-hover: var(--hover);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+  --color-status-active: var(--active);
+  --color-status-paused: var(--paused);
+  --color-status-done: var(--done);
+  --color-status-idea: var(--idea);
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue',
+    sans-serif;
+  --shadow-card: var(--shadow);
+  --shadow-pop: var(--shadow-pop);
 }
 
 html,
@@ -30,43 +86,32 @@ body,
 
 body {
   margin: 0;
-  background-color: var(--color-hud-bg);
-  color: var(--color-hud-text);
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    sans-serif;
+  background-color: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
   -webkit-font-smoothing: antialiased;
+  user-select: none;
 }
 
-.font-hud {
-  font-weight: 600;
-}
-
-/* Blueprint grid (fine + coarse) under a blue glow from the top, darkening at the edges. */
-.hud-backdrop {
-  background-color: var(--color-hud-bg);
-  background-image:
-    radial-gradient(ellipse 70% 45% at 50% -5%, rgb(56 189 248 / 0.2), transparent 70%),
-    radial-gradient(ellipse 120% 90% at 50% 50%, transparent 55%, rgb(0 0 0 / 0.55)),
-    linear-gradient(rgb(56 189 248 / 0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(56 189 248 / 0.09) 1px, transparent 1px),
-    linear-gradient(rgb(56 189 248 / 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(56 189 248 / 0.04) 1px, transparent 1px);
-  background-size:
-    100% 100%,
-    100% 100%,
-    160px 160px,
-    160px 160px,
-    32px 32px,
-    32px 32px;
+/* Text people typed or will copy stays selectable. */
+input,
+textarea,
+[contenteditable='true'],
+.selectable {
+  user-select: text;
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-status-active);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Text fields show focus with their own border and soft ring (see inputClass). */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
 }
 
 /* Headings get focus from code (to announce a new step or panel), never from Tab, so no ring. */
@@ -74,63 +119,26 @@ body {
   outline: none;
 }
 
-/*
- * Angled corners. Big panels use .hud-frame: the border and fill are drawn by two clipped
- * layers behind the content, so the diagonal edges get a real border line and children
- * (like menus) are never clipped. Set --frame-color / --frame-fill to recolour it.
- */
-.hud-frame {
-  --cut: 16px;
-  --frame-color: var(--color-hud-line);
-  --frame-fill: var(--color-hud-panel);
-  position: relative;
-  isolation: isolate;
+/* The window has no title bar on macOS; these strips let it be dragged like one. */
+.drag {
+  -webkit-app-region: drag;
 }
 
-.hud-frame::before,
-.hud-frame::after {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  pointer-events: none;
-  clip-path: polygon(
-    var(--cut) 0,
-    100% 0,
-    100% calc(100% - var(--cut)),
-    calc(100% - var(--cut)) 100%,
-    0 100%,
-    0 var(--cut)
-  );
-}
-
-.hud-frame::before {
-  inset: 0;
-  background: var(--frame-color);
-}
-
-.hud-frame::after {
-  inset: 1px;
-  background: linear-gradient(180deg, rgb(56 189 248 / 0.07), transparent 40%), var(--frame-fill);
-}
-
-.hud-frame-sm {
-  --cut: 9px;
+.drag button,
+.drag input,
+.drag a,
+.drag [role='button'],
+.no-drag {
+  -webkit-app-region: no-drag;
 }
 
 /*
- * Small controls (buttons, inputs, list rows, menus) get the same cut by clipping. Clipping
- * also hides the focus outline, so those show focus as an inset ring instead.
+ * A plain card. --frame-color / --frame-fill can still recolour one (the Lab uses them for
+ * its coloured nodes).
  */
-.rounded,
-.rounded-md,
-.rounded-lg {
-  border-radius: 0;
-  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
-}
-
-.rounded:focus-visible,
-.rounded-md:focus-visible,
-.rounded-lg:focus-visible {
-  outline: none;
-  box-shadow: inset 0 0 0 2px var(--color-status-active);
+.panel {
+  border: 1px solid var(--frame-color, var(--line));
+  background: var(--frame-fill, var(--surface));
+  border-radius: 10px;
+  box-shadow: var(--shadow);
 }

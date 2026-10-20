@@ -1,9 +1,8 @@
 // First-run setup, shown full-screen on a fresh install: welcome → pick worlds → choose how to
-// start. Finishing saves everything in one call; App then swaps this screen for the HUD, and
-// the scan dialog opens over it if the user asked for one.
+// start. Finishing saves everything in one call; App then swaps this screen for the project
+// list, and the scan dialog opens over it if the user asked for one.
 import { AnimatePresence, motion, useReducedMotion, type Variants } from 'framer-motion';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { BlueprintGrid } from '../components/ignite/BlueprintGrid';
 import {
   EMPTY_PICKS,
   LAST_STEP,
@@ -17,17 +16,15 @@ import { WorldsStep } from '../components/onboarding/WorldsStep';
 import { Button } from '../components/ui';
 import { errorMessage, useHud } from '../store/useHud';
 
-const panelStyle = {
-  '--frame-color': 'rgb(56 189 248 / 0.42)',
-  '--frame-fill': 'rgb(4 18 38 / 0.88)',
-} as React.CSSProperties;
+// Steps use the plain `.panel` card; nothing to override.
+const panelStyle: React.CSSProperties = {};
 
 // Steps slide in from the direction of travel. pointerEvents stops a quick double click on
 // the outgoing step's buttons from acting a second time while it fades away.
 const slide: Variants = {
-  enter: (dir: number) => ({ opacity: 0, x: dir * 36 }),
+  enter: (dir: number) => ({ opacity: 0, x: dir * 8 }),
   center: { opacity: 1, x: 0, pointerEvents: 'auto' },
-  exit: (dir: number) => ({ opacity: 0, x: dir * -36, pointerEvents: 'none' }),
+  exit: (dir: number) => ({ opacity: 0, x: dir * -8, pointerEvents: 'none' }),
 };
 
 const MODIFIERS = ['Shift', 'Meta', 'Control', 'Alt', 'Tab'];
@@ -70,7 +67,7 @@ export function Onboarding() {
 
   const goTo = (next: number) => {
     // The button that was pressed may unmount with its step; park focus on the screen until
-    // the next step focuses its own heading, so keys never fall through to the HUD's shortcuts.
+    // the next step focuses its own heading, so keys never fall through to the app's shortcuts.
     root.current?.focus({ preventScroll: true });
     setDir(next > step ? 1 : -1);
     setStep(next);
@@ -91,7 +88,7 @@ export function Onboarding() {
       await finishOnboarding(result.value);
       // On success App unmounts this screen, so there is no state to reset.
       if (scan) openDialog({ kind: 'scan' });
-      else showToast('Setup complete. Welcome to your HUD.');
+      else showToast('All set. Welcome to Stokebay.');
     } catch (err) {
       setError(errorMessage(err));
       setSaving(false);
@@ -110,8 +107,8 @@ export function Onboarding() {
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    // Setup owns the whole window: keep the HUD's global shortcuts ("n" opens Ignite, "/"
-    // focuses search) from firing behind it.
+    // Setup owns the whole window: keep the app's global shortcuts ("n" creates a project,
+    // "/" focuses search) from firing behind it.
     event.stopPropagation();
     if (MODIFIERS.includes(event.key)) return;
     if (!introDone) {
@@ -143,33 +140,19 @@ export function Onboarding() {
       tabIndex={-1}
       aria-label="Stokebay setup"
       aria-busy={saving}
-      className="relative flex min-h-0 flex-1 flex-col overflow-hidden focus:outline-none"
+      className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-canvas focus:outline-none"
       onKeyDown={onKeyDown}
       onPointerDown={() => {
         if (!introDone) setIntroDone(true);
       }}
     >
-      <BlueprintGrid key={introDone ? 'ready' : 'intro'} animate={!introDone} />
-
-      <header className="relative flex min-h-16 items-center justify-between gap-4 px-8 pt-6 pb-2">
-        <p
-          aria-hidden
-          className="font-display text-xs tracking-[0.3em] text-status-active/80 uppercase"
-        >
-          {step > 0 ? 'Stokebay · Setup' : ''}
-        </p>
-        <motion.div
-          key={introDone ? 'ready' : 'intro'}
-          initial={introDone ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.4, duration: 0.4 }}
-        >
-          <StepIndicator step={step} />
-        </motion.div>
+      {/* Clears the traffic lights and lets the window be dragged from the top edge. */}
+      <header className="drag flex h-12 shrink-0 items-center justify-center px-24">
+        {step > 0 ? <StepIndicator step={step} /> : null}
       </header>
 
       <div className="relative min-h-0 flex-1 overflow-y-auto px-8">
-        <div className="mx-auto h-full max-w-4xl">
+        <div className="mx-auto h-full max-w-2xl">
           <AnimatePresence mode="wait" custom={dir} initial={false}>
             <motion.div
               key={step}
@@ -178,7 +161,7 @@ export function Onboarding() {
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: reduce ? 0.12 : 0.2, ease: 'easeOut' }}
+              transition={{ duration: reduce ? 0.1 : 0.18, ease: 'easeOut' }}
               className="h-full"
             >
               {step === 0 ? (
@@ -206,29 +189,24 @@ export function Onboarding() {
       </div>
 
       {step > 0 ? (
-        <footer className="relative flex items-center gap-3 border-t border-hud-line bg-black/40 px-8 py-3">
+        <footer className="flex items-center gap-2 border-t border-line bg-sidebar px-8 py-3">
           <div className="min-w-0 flex-1">
             {error ? (
-              <p role="alert" className="text-sm text-red-300">
+              <p role="alert" className="text-sm text-danger">
                 {error}
               </p>
             ) : (
-              <p className="font-mono text-[11px] text-hud-muted">
+              <p className="text-xs text-muted">
                 Enter to continue · Esc to go back
                 {step === LAST_STEP ? ` · ${isMac ? '⌘' : 'Ctrl'} + Enter to finish` : ''}
               </p>
             )}
           </div>
           <Button disabled={saving} onClick={back}>
-            ◂ Back
+            Back
           </Button>
-          <Button
-            variant="primary"
-            disabled={saving}
-            onClick={next}
-            className="px-6 py-2 font-display text-sm tracking-[0.25em] shadow-[0_0_18px_rgb(56_214_255/0.35)]"
-          >
-            {step < LAST_STEP ? 'NEXT ▸' : saving ? 'LAUNCHING…' : 'LAUNCH HUD ▸'}
+          <Button variant="primary" disabled={saving} onClick={next} className="min-w-24">
+            {step < LAST_STEP ? 'Continue' : saving ? 'Setting up…' : 'Finish'}
           </Button>
         </footer>
       ) : null}

@@ -4,18 +4,10 @@ import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } f
 import type { ProjectStatus, World } from '../../shared/types';
 
 export const STATUS_COLOR: Record<ProjectStatus, string> = {
-  active: 'var(--color-status-active)',
-  paused: 'var(--color-status-paused)',
-  done: 'var(--color-status-done)',
-  idea: 'var(--color-status-idea)',
-};
-
-/** Same colours as hex, for effects that need alpha (glow filters) and can be animated. */
-export const STATUS_HEX: Record<ProjectStatus, string> = {
-  active: '#38d6ff',
-  paused: '#fbbf24',
-  done: '#34d399',
-  idea: '#a78bfa',
+  active: 'var(--active)',
+  paused: 'var(--paused)',
+  done: 'var(--done)',
+  idea: 'var(--idea)',
 };
 
 /** `#rrggbb` plus an alpha 0–1 → `#rrggbbaa`. */
@@ -34,10 +26,9 @@ export const STATUS_LABEL: Record<ProjectStatus, string> = {
 type ButtonVariant = 'primary' | 'ghost' | 'danger';
 
 const BUTTON_STYLES: Record<ButtonVariant, string> = {
-  primary:
-    'border-status-active/60 bg-status-active/15 text-status-active hover:bg-status-active/25',
-  ghost: 'border-hud-line bg-white/[0.03] text-hud-text hover:bg-white/[0.08]',
-  danger: 'border-red-400/50 bg-red-500/10 text-red-300 hover:bg-red-500/20',
+  primary: 'border-transparent bg-accent text-accent-ink hover:brightness-110 active:brightness-95',
+  ghost: 'border-line bg-surface text-ink shadow-card hover:bg-sunken',
+  danger: 'border-danger/30 bg-surface text-danger hover:bg-danger/10',
 };
 
 export function Button({
@@ -49,7 +40,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md border px-3.5 py-1.5 font-hud text-[13px] tracking-wider uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${BUTTON_STYLES[variant]} ${className}`}
+      className={`inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border px-3 text-[13px] font-medium transition-[background-color,filter] disabled:cursor-not-allowed disabled:opacity-45 ${BUTTON_STYLES[variant]} ${className}`}
       {...props}
     />
   );
@@ -57,7 +48,7 @@ export function Button({
 
 /** Classes for text inputs and textareas. */
 export const inputClass =
-  'w-full rounded-md border border-hud-line bg-black/30 px-3 py-2 text-sm text-hud-text placeholder:text-hud-muted/70 focus:border-status-active/60 focus:outline-none';
+  'w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted/80 focus:border-accent focus:outline-none focus:ring-3 focus:ring-accent/15';
 
 export function Field({
   label,
@@ -73,16 +64,16 @@ export function Field({
   const id = useId();
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="font-hud text-xs uppercase tracking-widest text-hud-muted">
+      <label htmlFor={id} className="text-[13px] font-medium text-ink">
         {label}
       </label>
       {children(id)}
       {error ? (
-        <p role="alert" className="text-xs text-red-300">
+        <p role="alert" className="text-xs text-danger">
           {error}
         </p>
       ) : hint ? (
-        <p className="text-xs text-hud-muted">{hint}</p>
+        <p className="text-xs text-muted">{hint}</p>
       ) : null}
     </div>
   );
@@ -90,13 +81,10 @@ export function Field({
 
 export function StatusBadge({ status }: { status: ProjectStatus }) {
   return (
-    <span
-      className="inline-flex items-center gap-1.5 font-hud text-xs uppercase tracking-wider"
-      style={{ color: STATUS_COLOR[status] }}
-    >
+    <span className="inline-flex items-center gap-1.5 text-xs text-muted">
       <span
         aria-hidden
-        className="inline-block h-1.5 w-1.5 rounded-full"
+        className="inline-block h-2 w-2 rounded-full"
         style={{ background: STATUS_COLOR[status] }}
       />
       {STATUS_LABEL[status]}
@@ -106,7 +94,7 @@ export function StatusBadge({ status }: { status: ProjectStatus }) {
 
 export function WorldTag({ world }: { world: World }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-md border border-hud-line px-2 py-0.5 text-xs text-hud-muted">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-sunken px-2 py-0.5 text-xs text-muted">
       <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: world.color }} />
       {world.name}
     </span>
@@ -168,7 +156,7 @@ export function Dialog({
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -182,23 +170,14 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`hud-frame w-full ${width} drop-shadow-[0_0_24px_rgb(56_189_248/0.35)]`}
-        style={
-          {
-            '--frame-color': 'rgb(56 189 248 / 0.55)',
-            '--frame-fill': 'var(--color-hud-raised)',
-          } as React.CSSProperties
-        }
-        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        className={`w-full ${width} overflow-hidden rounded-xl border border-line bg-raised shadow-pop`}
+        initial={{ opacity: 0, scale: 0.98, y: 6 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 8 }}
-        transition={{ duration: 0.16 }}
+        exit={{ opacity: 0, scale: 0.98, y: 6 }}
+        transition={{ duration: 0.14 }}
       >
-        <div className="flex items-center justify-between border-b border-hud-line px-5 py-3">
-          <h2
-            id={titleId}
-            className="font-display text-sm tracking-[0.2em] text-status-active uppercase"
-          >
+        <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
+          <h2 id={titleId} className="text-[15px] font-semibold text-ink">
             {title}
           </h2>
           <button
@@ -206,14 +185,16 @@ export function Dialog({
             data-dialog-close
             aria-label="Close"
             onClick={onClose}
-            className="rounded px-2 text-lg leading-none text-hud-muted hover:text-hud-text"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-lg leading-none text-muted hover:bg-hover hover:text-ink"
           >
             ×
           </button>
         </div>
         <div className="max-h-[70vh] overflow-y-auto px-5 py-4">{children}</div>
         {footer ? (
-          <div className="flex justify-end gap-2 border-t border-hud-line px-5 py-3">{footer}</div>
+          <div className="flex justify-end gap-2 border-t border-line bg-sunken/60 px-5 py-3">
+            {footer}
+          </div>
         ) : null}
       </motion.div>
     </motion.div>
